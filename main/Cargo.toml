@@ -1,0 +1,31 @@
+[workspace]
+resolver = "2"
+members = [
+    "common", "kps_dashboard_app",
+    "main_app",
+    "setting_app"
+]
+
+[workspace.dependencies]
+common = { path = "./common" }
+
+eframe = { path = "../custom/egui-0.29.1/crates/eframe", features = ["wgpu"] }
+egui = { path = "../custom/egui-0.29.1/crates/egui", features = ["serde"] }
+epaint = { path = "../custom/egui-0.29.1/crates/epaint" }
+
+winit = "0.30.5"
+serde = { version = "1.0.215", features = ["derive"] }
+serde_json = "1.0.132"
+font-kit = "0.14.2"
+owned_ttf_parser = "0.25.0"
+crossbeam = "0.8.4"
+rfd = "0.15.1"
+image = "0.25.5"
+
+windows = { version = "0.58.0", features = [
+    "Win32_Foundation",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_System_LibraryLoader",
+    "Win32_System_SystemInformation",
+    "Win32_System_Threading"
+] }
