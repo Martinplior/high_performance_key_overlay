@@ -204,6 +204,7 @@ impl App {
             .with_close_button(false)
             .with_icon(self.icon_data.clone())
             .with_title("预览")
+            .with_resizable(false)
             .with_inner_size(egui::vec2(window_setting.width, window_setting.height));
         ctx.show_viewport_immediate(new_viewport_id, viewport_builder, |ctx, _vc| {
             egui::CentralPanel::default().show(ctx, |ui| self.key_overlay.show(ui));
