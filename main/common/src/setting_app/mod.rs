@@ -8,13 +8,14 @@ use egui::ViewportBuilder;
 use winit::platform::windows::EventLoopBuilderExtWindows;
 
 use crate::{
+    global_listener_app::ListenerWrap,
     key_message::KeyMessage,
     key_overlay::KeyOverlay,
     msg_hook::{self, create_msg_hook},
     setting::Setting,
 };
 
-use crossbeam::channel::Receiver as MpscReceiver;
+use crate::global_listener_app::ListenerWrap as MpscReceiver;
 
 mod menu;
 mod setting_area;
@@ -33,9 +34,9 @@ impl SettingApp {
     pub fn run(mut self) {
         let setting = self.setting.take().unwrap();
         let enable_vsync = setting.window_setting.enable_vsync;
-        // large enough to avoid jam
-        const CAP: usize = u16::MAX as usize + 1;
-        let (keys_sender, keys_receiver) = crossbeam::channel::bounded(CAP);
+
+        let keys_receiver = ListenerWrap::new();
+
         let hook_shared = msg_hook::HookShared::new();
         let hook_shared_1 = hook_shared.clone();
         let min_edge = App::WINDOW_MIN_EDGE;
@@ -69,8 +70,7 @@ impl SettingApp {
                 ..Default::default()
             },
             event_loop_builder: Some(Box::new(|event_loop_builder| {
-                event_loop_builder
-                    .with_msg_hook(create_msg_hook::<false>(keys_sender, hook_shared_1));
+                event_loop_builder.with_msg_hook(create_msg_hook::<false>(hook_shared_1));
             })),
             ..Default::default()
         };
@@ -101,14 +101,13 @@ struct AppSharedData {
     /// setting that to be reloaded
     pending_setting: Option<Setting>,
     modified: bool,
-    egui_ctx: egui::Context,
-    keys_receiver: MpscReceiver<KeyMessage>,
+
+    key_overlay: KeyOverlay,
 }
 
 struct App {
     shared_data: AppSharedData,
     icon_data: Arc<egui::IconData>,
-    key_overlay: KeyOverlay,
     menu: menu::Menu,
     setting_area: setting_area::SettingArea,
 }
@@ -123,7 +122,7 @@ impl App {
     ) -> Self {
         cc.egui_ctx.set_theme(egui::ThemePreference::Dark);
         hook_shared.egui_ctx.set(cc.egui_ctx.clone()).unwrap();
-        let key_overlay = KeyOverlay::new(&cc.egui_ctx, setting.clone(), keys_receiver.clone());
+        let key_overlay = KeyOverlay::new(&cc.egui_ctx, setting.clone(), keys_receiver);
         let menu = menu::Menu::new();
         let setting_area = setting_area::SettingArea::new(&setting);
         let shared_data = AppSharedData {
@@ -132,13 +131,11 @@ impl App {
             current_setting: setting,
             pending_setting: None,
             modified: false,
-            egui_ctx: cc.egui_ctx.clone(),
-            keys_receiver,
+            key_overlay,
         };
         Self {
             shared_data,
             icon_data,
-            key_overlay,
             menu,
             setting_area,
         }
@@ -157,11 +154,12 @@ impl eframe::App for App {
         self.show(ctx);
         self.show_keyoverlay(ctx);
 
-        self.menu.update(&mut self.shared_data);
+        self.menu.update(ctx, &mut self.shared_data);
         self.setting_area.update(&mut self.shared_data);
-        self.key_overlay.update(instant_now);
+        self.shared_data.key_overlay.update(instant_now);
 
-        self.key_overlay
+        self.shared_data
+            .key_overlay
             .need_repaint()
             .then(|| ctx.request_repaint());
     }
@@ -175,7 +173,8 @@ impl App {
             .map(|pending_setting| {
                 let reload_font =
                     pending_setting.font_name != self.shared_data.current_setting.font_name;
-                self.key_overlay
+                self.shared_data
+                    .key_overlay
                     .load_setting(pending_setting.clone(), reload_font);
                 self.setting_area.reload(&pending_setting);
                 self.shared_data.current_setting = pending_setting;
@@ -207,7 +206,7 @@ impl App {
             .with_resizable(false)
             .with_inner_size(egui::vec2(window_setting.width, window_setting.height));
         ctx.show_viewport_immediate(new_viewport_id, viewport_builder, |ctx, _vc| {
-            egui::CentralPanel::default().show(ctx, |ui| self.key_overlay.show(ui));
+            egui::CentralPanel::default().show(ctx, |ui| self.shared_data.key_overlay.show(ui));
         });
     }
 }

@@ -13,7 +13,7 @@ use crate::{
 
 use super::AppSharedData;
 
-use crossbeam::channel::Receiver as MpscReceiver;
+use crate::global_listener_app::ListenerWrap as MpscReceiver;
 
 macro_rules! grid_new_row {
     ($ui:ident, $b: block) => {{
@@ -47,7 +47,7 @@ impl SettingArea {
             .update(&mut self.request_reload_setting);
         self.key_property_setting_row.update(
             &mut self.request_reload_setting,
-            &app_shared_data.keys_receiver,
+            app_shared_data.key_overlay.keys_receiver(),
         );
         std::mem::take(&mut self.request_reload_setting).then(|| {
             let WindowSettingRow {
@@ -355,7 +355,7 @@ impl KeyPropertySettingRow {
         self.check_states.resize(self.key_properties.len(), false);
     }
 
-    fn update(&mut self, request_reload: &mut bool, keys_receiver: &MpscReceiver<KeyMessage>) {
+    fn update(&mut self, request_reload: &mut bool, keys_receiver: &mut MpscReceiver<KeyMessage>) {
         self.handle_global_response();
         *request_reload |= std::mem::take(&mut self.request_reload);
         if self.key_bind_menu_opened {

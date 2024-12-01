@@ -13,13 +13,14 @@ use serde::{Deserialize, Serialize};
 use winit::platform::windows::EventLoopBuilderExtWindows;
 
 use crate::{
+    global_listener_app::ListenerWrap,
     key::Key,
     key_message::KeyMessage,
     message_dialog,
     msg_hook::{self, create_msg_hook},
 };
 
-use crossbeam::channel::Receiver as MpscReceiver;
+use crate::global_listener_app::ListenerWrap as MpscReceiver;
 
 pub struct MainApp {
     kps_setting: KpsSetting,
@@ -35,9 +36,8 @@ impl MainApp {
     }
 
     pub fn run(self) {
-        // large enough to avoid jam
-        const CAP: usize = u16::MAX as usize + 1;
-        let (keys_sender, keys_receiver) = crossbeam::channel::bounded(CAP);
+        let keys_receiver = ListenerWrap::new();
+
         let hook_shared = msg_hook::HookShared::new();
         let hook_shared_1 = hook_shared.clone();
         let edge = Self::EDGE;
@@ -67,8 +67,7 @@ impl MainApp {
                 ..Default::default()
             },
             event_loop_builder: Some(Box::new(|event_loop_builder| {
-                event_loop_builder
-                    .with_msg_hook(create_msg_hook::<true>(keys_sender, hook_shared_1));
+                event_loop_builder.with_msg_hook(create_msg_hook::<true>(hook_shared_1));
             })),
             ..Default::default()
         };

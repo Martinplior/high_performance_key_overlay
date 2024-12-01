@@ -16,3 +16,5 @@ crossbeam = { workspace = true }
 windows = { workspace = true }
 rfd = { workspace = true }
 image = { workspace = true }
+bytemuck = { workspace = true }
+interprocess = { workspace = true }

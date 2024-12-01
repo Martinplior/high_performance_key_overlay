@@ -34,11 +34,11 @@ impl Menu {
         });
     }
 
-    pub fn update(&mut self, app_shared_data: &mut AppSharedData) {
+    pub fn update(&mut self, egui_ctx: &egui::Context, app_shared_data: &mut AppSharedData) {
         self.modified = app_shared_data.modified;
         self.handle_discard(app_shared_data);
-        self.handle_exit(app_shared_data);
-        self.handle_keyboard_shortcut(&app_shared_data.egui_ctx);
+        self.handle_exit(egui_ctx, app_shared_data);
+        self.handle_keyboard_shortcut(egui_ctx);
         self.file.update(app_shared_data);
     }
 
@@ -48,19 +48,16 @@ impl Menu {
         });
     }
 
-    fn handle_exit(&mut self, app_shared_data: &mut AppSharedData) {
-        let close_requested = app_shared_data
-            .egui_ctx
-            .input(|input_state| input_state.viewport().close_requested());
+    fn handle_exit(&mut self, egui_ctx: &egui::Context, app_shared_data: &mut AppSharedData) {
+        let close_requested =
+            egui_ctx.input(|input_state| input_state.viewport().close_requested());
 
         if app_shared_data.modified && close_requested {
             let r = message_dialog::confirm("当前配置未保存，是否继续退出？")
                 .set_level(rfd::MessageLevel::Warning)
                 .show();
             if r == rfd::MessageDialogResult::Cancel {
-                app_shared_data
-                    .egui_ctx
-                    .send_viewport_cmd(egui::ViewportCommand::CancelClose);
+                egui_ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
             };
         };
     }

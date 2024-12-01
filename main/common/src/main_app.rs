@@ -8,13 +8,14 @@ use egui::ViewportBuilder;
 use winit::platform::windows::EventLoopBuilderExtWindows;
 
 use crate::{
+    global_listener_app::ListenerWrap,
     key_message::KeyMessage,
     key_overlay::KeyOverlay,
     msg_hook::{self, create_msg_hook},
     setting::{Setting, WindowSetting},
 };
 
-use crossbeam::channel::Receiver as MpscReceiver;
+use crate::global_listener_app::ListenerWrap as MpscReceiver;
 
 pub struct MainApp {
     setting: Option<Setting>,
@@ -34,9 +35,9 @@ impl MainApp {
             height,
             enable_vsync,
         } = setting.window_setting;
-        // large enough to avoid jam
-        const CAP: usize = u16::MAX as usize + 1;
-        let (keys_sender, keys_receiver) = crossbeam::channel::bounded(CAP);
+
+        let keys_receiver = ListenerWrap::new();
+
         let hook_shared = msg_hook::HookShared::new();
         let hook_shared_1 = hook_shared.clone();
         let icon_data = {
@@ -69,8 +70,7 @@ impl MainApp {
                 ..Default::default()
             },
             event_loop_builder: Some(Box::new(|event_loop_builder| {
-                event_loop_builder
-                    .with_msg_hook(create_msg_hook::<true>(keys_sender, hook_shared_1));
+                event_loop_builder.with_msg_hook(create_msg_hook::<true>(hook_shared_1));
             })),
             ..Default::default()
         };

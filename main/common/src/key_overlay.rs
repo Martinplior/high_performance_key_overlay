@@ -10,7 +10,7 @@ use crate::{
 };
 use egui::{Color32, FontData, FontDefinitions, FontFamily, Rounding, TextureHandle};
 
-use crossbeam::channel::Receiver as MpscReceiver;
+use crate::global_listener_app::ListenerWrap as MpscReceiver;
 
 #[derive(Debug)]
 struct KeyMap {
@@ -159,10 +159,8 @@ impl KeyHandler {
             } else if !key_message.is_pressed && first_key_drawer.begin_hold_instant.is_some() {
                 for index in indexes.iter() {
                     let key_drawer = self.key_drawers.get_mut(*index)?;
-                    let bar = KeyBar {
-                        press_instant: key_drawer.begin_hold_instant.take()?,
-                        release_instant: key_message.instant,
-                    };
+                    let bar =
+                        KeyBar::new(key_drawer.begin_hold_instant.take()?, key_message.instant);
                     key_drawer.add_bar(bar);
                 }
             }
@@ -317,6 +315,10 @@ impl KeyOverlay {
             self.key_handler.update(key_message);
         });
         self.key_handler.remove_outer_bar(instant_now);
+    }
+
+    pub fn keys_receiver(&mut self) -> &mut MpscReceiver<KeyMessage> {
+        &mut self.keys_receiver
     }
 
     pub fn show(&self, ui: &mut egui::Ui) {

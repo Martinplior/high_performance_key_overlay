@@ -255,6 +255,7 @@ impl Key {
         }
     }
 
+    #[allow(dead_code)]
     pub fn to_virtual_key(self) -> VIRTUAL_KEY {
         use Key::*;
         use KeyboardAndMouse::*;

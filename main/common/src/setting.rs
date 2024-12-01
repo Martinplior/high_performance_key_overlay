@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use egui::{Color32, Pos2};
 use serde::{Deserialize, Serialize};
 
