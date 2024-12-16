@@ -1,0 +1,71 @@
+{
+  "window_setting": {
+    "width": 600.0,
+    "height": 200.0,
+    "enable_vsync": true
+  },
+  "font_name": "Microsoft Yahei",
+  "background_color": {
+    "r": false,
+    "g": false,
+    "b": false
+  },
+  "key_properties": [
+    {
+      "key_bind": "Unknown",
+      "key_text": "你好，世界！",
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "width": 600.0,
+      "height": 200.0,
+      "thickness": 1.0,
+      "font_size": 30.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        false,
+        200.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "pressed_color": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        false,
+        50.0
+      ],
+      "key_counter": [
+        false,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 100.0
+          },
+          "font_size": 30.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    }
+  ]
+}

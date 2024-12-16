@@ -1,0 +1,239 @@
+{
+  "window_setting": {
+    "width": 800.0,
+    "height": 600.0,
+    "enable_vsync": true
+  },
+  "font_name": "Microsoft Yahei",
+  "background_color": {
+    "r": false,
+    "g": false,
+    "b": false
+  },
+  "key_properties": [
+    {
+      "key_bind": "KeyD",
+      "key_text": "D",
+      "position": {
+        "x": 110.0,
+        "y": 400.0
+      },
+      "width": 100.0,
+      "height": 100.0,
+      "thickness": 3.0,
+      "font_size": 30.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        false,
+        200.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        0,
+        0,
+        255,
+        255
+      ],
+      "pressed_color": [
+        0,
+        0,
+        255,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 100.0
+          },
+          "font_size": 30.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyF",
+      "key_text": "F",
+      "position": {
+        "x": 270.0,
+        "y": 400.0
+      },
+      "width": 100.0,
+      "height": 100.0,
+      "thickness": 3.0,
+      "font_size": 30.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        false,
+        200.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        0,
+        255,
+        0,
+        255
+      ],
+      "pressed_color": [
+        0,
+        255,
+        0,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 100.0
+          },
+          "font_size": 30.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyJ",
+      "key_text": "J",
+      "position": {
+        "x": 430.0,
+        "y": 400.0
+      },
+      "width": 100.0,
+      "height": 100.0,
+      "thickness": 3.0,
+      "font_size": 30.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        false,
+        200.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        0,
+        255,
+        0,
+        255
+      ],
+      "pressed_color": [
+        0,
+        255,
+        0,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 100.0
+          },
+          "font_size": 30.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyK",
+      "key_text": "K",
+      "position": {
+        "x": 590.0,
+        "y": 400.0
+      },
+      "width": 100.0,
+      "height": 100.0,
+      "thickness": 3.0,
+      "font_size": 30.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        false,
+        200.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        0,
+        0,
+        255,
+        255
+      ],
+      "pressed_color": [
+        0,
+        0,
+        255,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 100.0
+          },
+          "font_size": 30.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    }
+  ]
+}

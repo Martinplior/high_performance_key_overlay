@@ -1,0 +1,1471 @@
+{
+  "window_setting": {
+    "width": 825.0,
+    "height": 750.0,
+    "enable_vsync": true
+  },
+  "font_name": "Microsoft Yahei",
+  "background_color": {
+    "r": false,
+    "g": false,
+    "b": false
+  },
+  "key_properties": [
+    {
+      "key_bind": "KeyQ",
+      "key_text": "Q",
+      "position": {
+        "x": 50.0,
+        "y": 150.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        false,
+        200.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyW",
+      "key_text": "W",
+      "position": {
+        "x": 125.0,
+        "y": 150.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        false,
+        200.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyE",
+      "key_text": "E",
+      "position": {
+        "x": 200.0,
+        "y": 150.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        false,
+        200.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyR",
+      "key_text": "R",
+      "position": {
+        "x": 275.0,
+        "y": 150.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        false,
+        200.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyT",
+      "key_text": "T",
+      "position": {
+        "x": 350.0,
+        "y": 150.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        false,
+        200.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyY",
+      "key_text": "Y",
+      "position": {
+        "x": 425.0,
+        "y": 150.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        false,
+        200.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyU",
+      "key_text": "U",
+      "position": {
+        "x": 500.0,
+        "y": 150.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        false,
+        200.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyI",
+      "key_text": "I",
+      "position": {
+        "x": 575.0,
+        "y": 150.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        false,
+        200.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyO",
+      "key_text": "O",
+      "position": {
+        "x": 650.0,
+        "y": 150.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        false,
+        200.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyP",
+      "key_text": "P",
+      "position": {
+        "x": 725.0,
+        "y": 150.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        false,
+        200.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyA",
+      "key_text": "A",
+      "position": {
+        "x": 75.0,
+        "y": 400.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        true,
+        150.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyS",
+      "key_text": "S",
+      "position": {
+        "x": 150.0,
+        "y": 400.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        true,
+        150.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyD",
+      "key_text": "D",
+      "position": {
+        "x": 225.0,
+        "y": 400.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        true,
+        150.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyF",
+      "key_text": "F",
+      "position": {
+        "x": 300.0,
+        "y": 400.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        true,
+        150.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyG",
+      "key_text": "G",
+      "position": {
+        "x": 375.0,
+        "y": 400.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        true,
+        150.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyH",
+      "key_text": "H",
+      "position": {
+        "x": 450.0,
+        "y": 400.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        true,
+        150.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyJ",
+      "key_text": "J",
+      "position": {
+        "x": 525.0,
+        "y": 400.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        true,
+        150.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyK",
+      "key_text": "K",
+      "position": {
+        "x": 600.0,
+        "y": 400.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        true,
+        150.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyL",
+      "key_text": "L",
+      "position": {
+        "x": 675.0,
+        "y": 400.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        true,
+        150.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyZ",
+      "key_text": "Z",
+      "position": {
+        "x": 100.0,
+        "y": 650.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        true,
+        150.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyX",
+      "key_text": "X",
+      "position": {
+        "x": 175.0,
+        "y": 650.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        true,
+        150.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyC",
+      "key_text": "C",
+      "position": {
+        "x": 250.0,
+        "y": 650.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        true,
+        150.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyV",
+      "key_text": "V",
+      "position": {
+        "x": 325.0,
+        "y": 650.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        true,
+        150.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyB",
+      "key_text": "B",
+      "position": {
+        "x": 400.0,
+        "y": 650.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        true,
+        150.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyN",
+      "key_text": "N",
+      "position": {
+        "x": 475.0,
+        "y": 650.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        true,
+        150.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "key_bind": "KeyM",
+      "key_text": "M",
+      "position": {
+        "x": 550.0,
+        "y": 650.0
+      },
+      "width": 50.0,
+      "height": 50.0,
+      "thickness": 3.0,
+      "font_size": 20.0,
+      "bar_speed": 500.0,
+      "max_distance": [
+        true,
+        150.0
+      ],
+      "text_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "frame_color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "pressed_color": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "key_direction": "Up",
+      "fade_length": [
+        true,
+        50.0
+      ],
+      "key_counter": [
+        true,
+        {
+          "position": {
+            "x": 0.0,
+            "y": 50.0
+          },
+          "font_size": 20.0,
+          "text_color": [
+            255,
+            255,
+            255,
+            255
+          ]
+        }
+      ]
+    }
+  ]
+}
