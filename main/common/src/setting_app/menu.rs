@@ -5,7 +5,7 @@ use super::AppSharedData;
 pub struct Menu {
     file: File,
     modified: bool,
-    request_discrad: bool,
+    request_discard: bool,
 }
 
 impl Menu {
@@ -13,7 +13,7 @@ impl Menu {
         Self {
             file: File::new(),
             modified: false,
-            request_discrad: false,
+            request_discard: false,
         }
     }
 
@@ -27,7 +27,7 @@ impl Menu {
                         .set_level(rfd::MessageLevel::Warning)
                         .show();
                     if r == rfd::MessageDialogResult::Ok {
-                        self.request_discrad = true;
+                        self.request_discard = true;
                     }
                 });
             });
@@ -37,28 +37,35 @@ impl Menu {
     pub fn update(&mut self, egui_ctx: &egui::Context, app_shared_data: &mut AppSharedData) {
         self.modified = app_shared_data.modified;
         self.handle_discard(app_shared_data);
-        self.handle_exit(egui_ctx, app_shared_data);
+        self.handle_exit(egui_ctx);
         self.handle_keyboard_shortcut(egui_ctx);
         self.file.update(app_shared_data);
     }
 
     fn handle_discard(&mut self, app_shared_data: &mut AppSharedData) {
-        std::mem::take(&mut self.request_discrad).then(|| {
+        std::mem::take(&mut self.request_discard).then(|| {
             app_shared_data.pending_setting = Some(app_shared_data.loaded_setting.clone());
         });
     }
 
-    fn handle_exit(&mut self, egui_ctx: &egui::Context, app_shared_data: &mut AppSharedData) {
+    fn handle_exit(&mut self, egui_ctx: &egui::Context) {
         let close_requested =
             egui_ctx.input(|input_state| input_state.viewport().close_requested());
 
-        if app_shared_data.modified && close_requested {
-            let r = message_dialog::confirm("当前配置未保存，是否继续退出？")
-                .set_level(rfd::MessageLevel::Warning)
-                .show();
-            if r == rfd::MessageDialogResult::Cancel {
-                egui_ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
-            };
+        if self.modified && close_requested {
+            // FIX: 当处于modified状态，聚焦到预览窗口，再直接关闭窗口时，会导致警告窗口无法
+            // 正确弹出
+            // that's weird...
+            std::thread::scope(|s| {
+                s.spawn(|| {
+                    let r = message_dialog::confirm("当前配置未保存，是否继续退出？")
+                        .set_level(rfd::MessageLevel::Warning)
+                        .show();
+                    if r == rfd::MessageDialogResult::Cancel {
+                        egui_ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+                    };
+                });
+            });
         };
     }
 

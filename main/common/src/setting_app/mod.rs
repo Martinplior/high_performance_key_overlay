@@ -1,9 +1,5 @@
 use std::sync::Arc;
 
-use eframe::{
-    egui_wgpu::WgpuConfiguration,
-    wgpu::{Backends, PowerPreference, PresentMode},
-};
 use egui::ViewportBuilder;
 
 use crate::{global_listener::GlobalListener, key_overlay::KeyOverlay, msg_hook, setting::Setting};
@@ -44,18 +40,7 @@ impl SettingApp {
                 .with_min_inner_size([min_edge, min_edge])
                 .with_inner_size([edge, edge])
                 .with_icon(icon_data.clone()),
-            renderer: eframe::Renderer::Wgpu,
-            wgpu_options: WgpuConfiguration {
-                supported_backends: Backends::VULKAN,
-                present_mode: if enable_vsync {
-                    PresentMode::AutoVsync
-                } else {
-                    PresentMode::AutoNoVsync
-                },
-                power_preference: PowerPreference::HighPerformance,
-                ..Default::default()
-            },
-            ..Default::default()
+            ..crate::common_eframe_native_options(enable_vsync)
         };
 
         eframe::run_native(
@@ -110,7 +95,7 @@ impl App {
                 );
             },
         );
-        let key_overlay = KeyOverlay::new(&cc.egui_ctx, setting.clone(), keys_receiver);
+        let key_overlay = KeyOverlay::new(cc, &cc.egui_ctx, setting.clone(), keys_receiver);
         let menu = menu::Menu::new();
         let setting_area = setting_area::SettingArea::new(&setting);
         let shared_data = AppSharedData {
@@ -193,9 +178,12 @@ impl App {
             .with_icon(self.icon_data.clone())
             .with_title("预览")
             .with_resizable(false)
+            .with_transparent(true)
             .with_inner_size(egui::vec2(window_setting.width, window_setting.height));
         ctx.show_viewport_immediate(new_viewport_id, viewport_builder, |ctx, _vc| {
-            egui::CentralPanel::default().show(ctx, |ui| self.shared_data.key_overlay.show(ui));
+            egui::CentralPanel::default()
+                .frame(egui::Frame::none())
+                .show(ctx, |ui| self.shared_data.key_overlay.show(ui));
         });
     }
 }

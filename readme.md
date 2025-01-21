@@ -7,5 +7,5 @@
 
 # 未来计划
 
-- [ ] native Vulkan backend & transparent background
-- [ ] implement main_app without eframe+egui for extreme performance
+- [x] ~~native Vulkan backend~~ no need for it & transparent background
+- [ ] implement main_app without eframe+egui for extreme performance... or do we really need extreme performance?

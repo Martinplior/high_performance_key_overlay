@@ -1,7 +1,3 @@
-use eframe::{
-    egui_wgpu::WgpuConfiguration,
-    wgpu::{Backends, PowerPreference, PresentMode},
-};
 use egui::ViewportBuilder;
 
 use crate::{
@@ -47,19 +43,9 @@ impl MainApp {
                 .with_resizable(false)
                 .with_maximize_button(false)
                 .with_minimize_button(false)
-                .with_icon(icon_data),
-            renderer: eframe::Renderer::Wgpu,
-            wgpu_options: WgpuConfiguration {
-                supported_backends: Backends::VULKAN,
-                present_mode: if enable_vsync {
-                    PresentMode::AutoVsync
-                } else {
-                    PresentMode::AutoNoVsync
-                },
-                power_preference: PowerPreference::HighPerformance,
-                ..Default::default()
-            },
-            ..Default::default()
+                .with_icon(icon_data)
+                .with_transparent(true),
+            ..crate::common_eframe_native_options(enable_vsync)
         };
         eframe::run_native(
             "HP KeyOverlay",
@@ -87,7 +73,7 @@ impl App {
             msg_hook::create_msg_hook(keys_sender, hook_shared),
             msg_hook::create_register_raw_input_hook(),
         );
-        let key_overlay = KeyOverlay::new(&cc.egui_ctx, setting, keys_receiver);
+        let key_overlay = KeyOverlay::new(cc, &cc.egui_ctx, setting, keys_receiver);
         Self {
             key_overlay,
             _global_listener: global_listener,
@@ -96,10 +82,16 @@ impl App {
 }
 
 impl eframe::App for App {
+    fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
+        [0.0; 4]
+    }
+
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let instant_now = std::time::Instant::now();
         self.key_overlay.update(instant_now);
-        egui::CentralPanel::default().show(ctx, |ui| self.key_overlay.show(ui));
+        egui::CentralPanel::default()
+            .frame(egui::Frame::none())
+            .show(ctx, |ui| self.key_overlay.show(ui));
         self.key_overlay
             .need_repaint()
             .then(|| ctx.request_repaint());

@@ -138,6 +138,14 @@ impl Into<[u8; 4]> for UColor32 {
     }
 }
 
+impl Into<epaint::Rgba> for UColor32 {
+    #[inline(always)]
+    fn into(self) -> epaint::Rgba {
+        let Self([r, g, b, a]) = self;
+        epaint::Rgba::from_srgba_unmultiplied(r, g, b, a)
+    }
+}
+
 impl From<(u8, u8, u8, u8)> for UColor32 {
     #[inline(always)]
     fn from(value: (u8, u8, u8, u8)) -> Self {

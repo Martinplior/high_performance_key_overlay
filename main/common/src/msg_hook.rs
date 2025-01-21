@@ -39,9 +39,7 @@ pub fn create_msg_hook(
         if msg.message == WM_INPUT {
             handle_raw_input(msg, &msg_sender);
             let ctx = &hook_shared.egui_ctx;
-            if !ctx.has_requested_repaint() {
-                ctx.request_repaint();
-            }
+            (!ctx.has_requested_repaint()).then(|| ctx.request_repaint());
             return true;
         }
         false

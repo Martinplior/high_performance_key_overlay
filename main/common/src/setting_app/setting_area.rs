@@ -8,7 +8,8 @@ use crate::{
     key_overlay::KeyOverlay,
     key_property::{KeyDirection, KeyProperty},
     message_dialog,
-    setting::{BackgroundColor, Setting, WindowSetting},
+    setting::{Setting, WindowSetting},
+    ucolor32::UColor32,
 };
 
 use super::AppSharedData;
@@ -78,7 +79,7 @@ impl SettingArea {
 
 struct WindowSettingRow {
     window_setting: WindowSetting,
-    background_color: BackgroundColor,
+    background_color: UColor32,
     current_font_family: Box<str>,
     font_families: Box<[Box<str>]>,
     request_reload: bool,
@@ -181,15 +182,10 @@ impl WindowSettingRow {
                 .striped(true);
             grid_right.show(ui, |ui| {
                 grid_new_row!(ui, {
-                    egui::Label::new("背景颜色:")
-                        .selectable(false)
-                        .ui(ui)
-                        .on_hover_text("只能支持8种颜色，不要问为什么...");
-                    ui.horizontal(|ui| {
-                        changed |= ui.toggle_value(&mut self.background_color.r, "R").changed();
-                        changed |= ui.toggle_value(&mut self.background_color.g, "G").changed();
-                        changed |= ui.toggle_value(&mut self.background_color.b, "B").changed();
-                    });
+                    egui::Label::new("背景颜色:").selectable(false).ui(ui);
+                    changed |= ui
+                        .color_edit_button_srgba_unmultiplied(&mut self.background_color.0)
+                        .changed();
                 });
                 grid_new_row!(ui, {
                     egui::Label::new("字体:")

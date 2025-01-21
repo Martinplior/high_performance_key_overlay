@@ -90,7 +90,7 @@ impl GlobalListener {
                 0,
                 0,
                 0,
-                HWND_MESSAGE,
+                Some(HWND_MESSAGE),
                 None,
                 None,
                 None,
@@ -105,7 +105,7 @@ impl GlobalListener {
 
         loop {
             let mut msg = MaybeUninit::uninit();
-            let r = unsafe { GetMessageW(msg.as_mut_ptr(), hwnd, 0, 0) }.0;
+            let r = unsafe { GetMessageW(msg.as_mut_ptr(), Some(hwnd), 0, 0) }.0;
             match r {
                 0 | -1 => break,
                 _ => (),
@@ -121,7 +121,7 @@ impl GlobalListener {
 
 impl Drop for GlobalListener {
     fn drop(&mut self) {
-        unsafe { PostMessageW(self.msg_hwnd, WM_CLOSE, None, None) }.unwrap();
+        unsafe { PostMessageW(Some(self.msg_hwnd), WM_CLOSE, WPARAM(0), LPARAM(0)) }.unwrap();
         unsafe { ManuallyDrop::take(&mut self.thread) }
             .join()
             .unwrap();

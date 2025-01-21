@@ -3,10 +3,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use eframe::{
-    egui_wgpu::WgpuConfiguration,
-    wgpu::{Backends, PowerPreference, PresentMode},
-};
 use egui::{Color32, TextureHandle, ViewportBuilder};
 use serde::{Deserialize, Serialize};
 
@@ -48,15 +44,9 @@ impl MainApp {
                 .with_resizable(false)
                 .with_maximize_button(false)
                 .with_minimize_button(false)
-                .with_icon(icon_data),
-            renderer: eframe::Renderer::Wgpu,
-            wgpu_options: WgpuConfiguration {
-                supported_backends: Backends::VULKAN,
-                present_mode: PresentMode::AutoVsync,
-                power_preference: PowerPreference::HighPerformance,
-                ..Default::default()
-            },
-            ..Default::default()
+                .with_icon(icon_data)
+                .with_transparent(true),
+            ..crate::common_eframe_native_options(true)
         };
         eframe::run_native(
             "HP KPS Dashboard",
@@ -69,7 +59,6 @@ impl MainApp {
 
 struct App {
     kps: Kps,
-    background_color: Color32,
     keys_receiver: MpscReceiver<KeyMessage>,
     keys_message_buf: Vec<KeyMessage>,
     key_repeat_flags: [bool; Self::KEY_REPEAT_FLAGS_CAP],
@@ -90,10 +79,8 @@ impl App {
             msg_hook::create_msg_hook(keys_sender, hook_shared),
             msg_hook::create_register_raw_input_hook(),
         );
-        let [r, g, b] = kps_setting.background_color;
         Self {
             kps: Kps::new(&cc.egui_ctx, kps_setting),
-            background_color: Color32::from_rgb(r, g, b),
             keys_receiver,
             keys_message_buf: Vec::with_capacity(64),
             key_repeat_flags: [false; Self::KEY_REPEAT_FLAGS_CAP],
@@ -103,6 +90,10 @@ impl App {
 }
 
 impl eframe::App for App {
+    fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
+        [0.0; 4]
+    }
+
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let instant_now = std::time::Instant::now();
         self.keys_message_buf.extend(self.keys_receiver.try_iter());
@@ -122,7 +113,7 @@ impl eframe::App for App {
         self.kps.update_pointer_value(stable_dt);
 
         egui::CentralPanel::default()
-            .frame(egui::Frame::default().fill(self.background_color))
+            .frame(egui::Frame::none())
             .show(ctx, |ui| self.kps.show(ui));
 
         self.kps.need_repaint().then(|| ctx.request_repaint());
@@ -134,7 +125,6 @@ pub struct KpsSetting {
     /// unit: ms
     interval_ms: f32,
     max_count: u32,
-    background_color: [u8; 3],
 }
 
 impl Default for KpsSetting {
@@ -142,7 +132,6 @@ impl Default for KpsSetting {
         Self {
             interval_ms: 250.0,
             max_count: 24,
-            background_color: [0, 255, 0],
         }
     }
 }

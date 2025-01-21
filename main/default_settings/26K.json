@@ -5,11 +5,12 @@
     "enable_vsync": true
   },
   "font_name": "Microsoft Yahei",
-  "background_color": {
-    "r": false,
-    "g": false,
-    "b": false
-  },
+  "background_color": [
+    0,
+    0,
+    0,
+    0
+  ],
   "key_properties": [
     {
       "key_bind": "KeyQ",

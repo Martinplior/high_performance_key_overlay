@@ -7,10 +7,12 @@ pub mod setting_app;
 mod global_listener;
 mod key;
 mod key_bar;
-mod key_drawer;
+mod key_draw_cache;
+mod key_handler;
 mod key_message;
 mod key_overlay;
 mod key_property;
+mod key_shader;
 mod message_dialog;
 mod msg_hook;
 mod setting;
@@ -18,19 +20,51 @@ mod ucolor32;
 mod utils;
 mod win_utils;
 
+/// oh, blazing fast!
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 /// large enough to avoid jam
 const CHANNEL_CAP: usize = u16::MAX as usize + 1;
 
 const SETTING_FILE_NAME: &str = "setting.json";
 
-pub fn get_current_dir() -> std::path::PathBuf {
+fn common_eframe_native_options(vsync: bool) -> eframe::NativeOptions {
+    use eframe::egui_wgpu::{WgpuConfiguration, WgpuSetup};
+    use eframe::wgpu::{Backends, PowerPreference, PresentMode};
+    let WgpuSetup::CreateNew {
+        device_descriptor, ..
+    } = WgpuConfiguration::default().wgpu_setup
+    else {
+        unreachable!();
+    };
+    eframe::NativeOptions {
+        renderer: eframe::Renderer::Wgpu,
+        wgpu_options: WgpuConfiguration {
+            wgpu_setup: WgpuSetup::CreateNew {
+                supported_backends: Backends::VULKAN | Backends::GL,
+                power_preference: PowerPreference::HighPerformance,
+                device_descriptor,
+            },
+            present_mode: if vsync {
+                PresentMode::AutoVsync
+            } else {
+                PresentMode::AutoNoVsync
+            },
+            ..Default::default()
+        },
+        ..Default::default()
+    }
+}
+
+fn get_current_dir() -> std::path::PathBuf {
     std::env::current_dir().unwrap_or_else(|err| {
         message_dialog::error(format!("未知错误：{}", err.to_string())).show();
         panic!()
     })
 }
 
-pub fn key_overlay_setting_path() -> std::path::PathBuf {
+fn key_overlay_setting_path() -> std::path::PathBuf {
     get_current_dir().join(SETTING_FILE_NAME)
 }
 
@@ -46,7 +80,7 @@ pub fn graceful_run<R>(
             format!("{:?}, type_id = {:?}", err, err.type_id())
         };
         #[cfg(debug_assertions)]
-        dbg!(&message);
+        eprintln!("{}", &message);
         message_dialog::error(message).show();
         err
     })
@@ -56,32 +90,73 @@ pub fn graceful_run<R>(
 mod tests {
 
     use egui::{Color32, FontDefinitions};
+    use font_kit::{family_name::FamilyName, properties::Properties};
 
     use crate::{setting::Setting, ucolor32::UColor32};
+
+    #[test]
+    fn query_all_families() {
+        let sys_fonts = font_kit::source::SystemSource::new();
+        let families = sys_fonts.all_families().unwrap();
+        families.iter().enumerate().for_each(|(index, family)| {
+            println!("{:^3}: {}", index, family);
+        });
+    }
 
     #[test]
     fn query_fonts() {
         let sys_fonts = font_kit::source::SystemSource::new();
         let families = sys_fonts.all_families().unwrap();
-        families.iter().enumerate().for_each(|(index, family)| {
-            let family_handle = sys_fonts.select_family_by_name(family).unwrap();
-            let fonts = family_handle.fonts();
-            fonts.iter().for_each(|handle| {
-                let font = handle.load().unwrap();
-                let font_index = match handle {
-                    font_kit::handle::Handle::Path { font_index, .. } => font_index,
-                    _ => unreachable!(),
-                };
-                println!(
-                    "{}: {}, {}, font_index: {}, {:?}",
-                    index,
-                    family,
-                    font.full_name(),
-                    font_index,
-                    font.properties()
-                );
+        families
+            .iter()
+            .enumerate()
+            .take(50)
+            .for_each(|(index, family)| {
+                let family_handle = sys_fonts.select_family_by_name(family).unwrap();
+                let fonts = family_handle.fonts();
+                fonts.iter().for_each(|handle| {
+                    let font = handle.load().unwrap();
+                    let font_index = match handle {
+                        font_kit::handle::Handle::Path { font_index, .. } => font_index,
+                        _ => unreachable!(),
+                    };
+                    println!(
+                        "{:^3}: {:^30} | {:^50} | font_index: {:^3}",
+                        index,
+                        family,
+                        font.full_name(),
+                        font_index
+                    );
+                });
             });
+    }
+
+    #[test]
+    fn select_font() {
+        let sys_fonts = font_kit::source::SystemSource::new();
+        let font_family = "等距更纱黑体 SC";
+        let Ok(family_handle) = sys_fonts.select_family_by_name(font_family) else {
+            panic!("未找到字体：{}", font_family);
+        };
+        println!("family count: {}", family_handle.fonts().len());
+        family_handle.fonts().iter().for_each(|handle| {
+            let font = handle.load().unwrap();
+            println!("font name: {}", font.full_name());
         });
+    }
+
+    #[test]
+    fn select_font_single() {
+        let sys_fonts = font_kit::source::SystemSource::new();
+        let font_name = "等距更纱黑体 SC";
+        let font_handle = sys_fonts
+            .select_best_match(
+                &[FamilyName::Title(font_name.to_string())],
+                &Properties::new(),
+            )
+            .unwrap();
+        let font = font_handle.load().unwrap();
+        println!("font name: {}", font.full_name());
     }
 
     #[test]
