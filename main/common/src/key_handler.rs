@@ -50,7 +50,7 @@ impl KeyMap {
 
 pub struct KeyHandler {
     key_properties: Box<[KeyProperty]>,
-    key_drawers: Box<[KeyDrawCache]>,
+    key_draw_caches: Box<[KeyDrawCache]>,
     key_shader: key_shader::CustomCallback,
     key_map: KeyMap,
     font_family: egui::FontFamily,
@@ -64,9 +64,10 @@ impl KeyHandler {
             ..
         } = setting;
         let key_properties = key_properties.into_boxed_slice();
-        let key_shader = key_shader::CustomCallback::new(cc, &key_properties);
+        let window_size = [window_setting.width, window_setting.height];
+        let key_shader = key_shader::CustomCallback::new(cc, &key_properties, window_size);
         let key_map = KeyMap::new(&key_properties);
-        let key_drawers = key_properties
+        let key_draw_caches = key_properties
             .iter()
             .map(|key_property| {
                 KeyDrawCache::new(&window_setting, key_property.bar_speed, key_property)
@@ -75,7 +76,7 @@ impl KeyHandler {
         let font_family = egui::FontFamily::Name(KeyOverlay::FONT_FAMILY_NAME.into());
         Self {
             key_properties,
-            key_drawers,
+            key_draw_caches,
             key_shader,
             key_map,
             font_family,
@@ -90,45 +91,48 @@ impl KeyHandler {
         } = setting;
         let new_key_properties = key_properties.clone().into_boxed_slice();
         let new_key_map = KeyMap::new(&new_key_properties);
-        let new_key_drawers = new_key_properties
+        let new_key_draw_caches = new_key_properties
             .iter()
             .map(|key_property| {
                 KeyDrawCache::new(&window_setting, key_property.bar_speed, key_property)
             })
             .collect();
 
-        self.key_shader.reload(&new_key_properties);
+        let window_size = [window_setting.width, window_setting.height];
+        self.key_shader.reload(&new_key_properties, window_size);
         self.key_properties = new_key_properties;
         self.key_map = new_key_map;
-        self.key_drawers = new_key_drawers;
+        self.key_draw_caches = new_key_draw_caches;
     }
 
     pub fn update(&mut self, key_message: KeyMessage) {
         debug_assert!(key_message.key != Key::Unknown);
 
         let mut inner_update = |indexes: &[usize]| -> Option<()> {
-            let first_key_drawer = self.key_drawers.get_mut(*indexes.first()?)?;
+            let first_key_draw_cache = self.key_draw_caches.get_mut(*indexes.first()?)?;
 
             let now_pressed = key_message.is_pressed;
-            let prev_pressed = first_key_drawer.begin_hold_instant.is_some();
+            let prev_pressed = first_key_draw_cache.begin_hold_instant.is_some();
 
             match (prev_pressed, now_pressed) {
                 (false, true) => {
                     for index in indexes.iter() {
                         let key_property = self.key_properties.get_mut(*index)?;
-                        let key_drawer = self.key_drawers.get_mut(*index)?;
+                        let key_draw_cache = self.key_draw_caches.get_mut(*index)?;
                         if key_property.key_counter.0 {
-                            key_drawer.increase_count();
+                            key_draw_cache.increase_count();
                         }
-                        key_drawer.begin_hold_instant = Some(key_message.instant);
+                        key_draw_cache.begin_hold_instant = Some(key_message.instant);
                     }
                 }
                 (true, false) => {
                     for index in indexes.iter() {
-                        let key_drawer = self.key_drawers.get_mut(*index)?;
-                        let bar =
-                            KeyBar::new(key_drawer.begin_hold_instant.take()?, key_message.instant);
-                        key_drawer.add_bar(bar);
+                        let key_draw_cache = self.key_draw_caches.get_mut(*index)?;
+                        let bar = KeyBar::new(
+                            key_draw_cache.begin_hold_instant.take()?,
+                            key_message.instant,
+                        );
+                        key_draw_cache.add_bar(bar);
                     }
                 }
                 _ => (),
@@ -142,8 +146,8 @@ impl KeyHandler {
     }
 
     pub fn remove_outer_bar(&mut self, instant_now: Instant) {
-        self.key_drawers.iter_mut().for_each(|key_drawer| {
-            key_drawer.remove_outer_bar(instant_now);
+        self.key_draw_caches.iter_mut().for_each(|key_draw_cache| {
+            key_draw_cache.remove_outer_bar(instant_now);
         });
     }
 
@@ -151,7 +155,7 @@ impl KeyHandler {
         let key_drawing_pipeline = KeyDrawingPipeline {
             key_shader: &self.key_shader,
             key_properties: &self.key_properties,
-            key_draw_caches: &self.key_drawers,
+            key_draw_caches: &self.key_draw_caches,
             font_family: &self.font_family,
             instant_now,
             painter,
@@ -163,9 +167,9 @@ impl KeyHandler {
     }
 
     pub fn need_repaint(&self) -> bool {
-        self.key_drawers
+        self.key_draw_caches
             .iter()
-            .any(|key_drawer| key_drawer.need_repaint())
+            .any(|key_draw_cache| key_draw_cache.need_repaint())
     }
 }
 
@@ -218,6 +222,9 @@ impl<'a> KeyDrawingPipeline<'a> {
                         }))
                 });
         key_shader_inner.bar_rects.extend(bar_rect_iter);
+        if key_shader_inner.bar_rects.is_empty() {
+            return;
+        }
         drop(key_shader_inner);
         painter.add(egui_wgpu::Callback::new_paint_callback(
             painter.clip_rect(),

@@ -3,12 +3,11 @@ use std::{num::NonZeroU64, sync::Arc};
 use eframe::wgpu::{
     self, include_wgsl,
     util::{BufferInitDescriptor, DeviceExt},
-    BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType,
-    BufferDescriptor, FragmentState, PipelineLayoutDescriptor, PrimitiveState,
-    RenderPipelineDescriptor, ShaderStages, VertexState,
+    BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType, FragmentState,
+    PipelineLayoutDescriptor, PrimitiveState, RenderPipelineDescriptor, ShaderStages, VertexState,
 };
 use egui::Color32;
-use parking_lot::{Mutex, MutexGuard};
+use parking_lot::Mutex;
 
 use crate::key_property::KeyProperty;
 
@@ -21,7 +20,7 @@ pub struct BarRect {
 }
 
 #[repr(C)]
-#[derive(Clone)]
+#[derive(Clone, Copy, bytemuck::NoUninit)]
 struct ScreenSize {
     width: f32,
     height: f32,
@@ -44,7 +43,7 @@ struct Property {
 }
 
 #[repr(C)]
-#[derive(Clone)]
+#[derive(Clone, Copy, bytemuck::NoUninit)]
 struct Uniforms {
     screen_size: ScreenSize,
 }
@@ -60,13 +59,67 @@ pub struct CustomCallbackInner {
     pub bar_rects: Vec<BarRect>,
 }
 
+impl CustomCallbackInner {
+    fn recreate_bind_group(&mut self) {
+        let new_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("key_shader.bind_group"),
+            layout: &self.bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: self.uniforms_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: self.properties_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: self.bar_rects_buffer.as_entire_binding(),
+                },
+            ],
+        });
+        self.bind_group = new_bind_group;
+    }
+
+    fn update_bar_rects_buffer(&mut self, queue: &eframe::wgpu::Queue) {
+        if self.bar_rects.is_empty() {
+            return;
+        }
+        let size = self.bar_rects.len() * std::mem::size_of::<BarRect>();
+        if size <= self.bar_rects_buffer.size() as usize {
+            let size = NonZeroU64::new(size as u64).unwrap();
+            let mut view = queue
+                .write_buffer_with(&self.bar_rects_buffer, 0, size)
+                .unwrap();
+            view.copy_from_slice(bytemuck::cast_slice(&self.bar_rects));
+            return;
+        }
+        let old_len = self.bar_rects.len();
+        let new_len = self.bar_rects.capacity();
+        self.bar_rects.resize(new_len, Default::default());
+        let new_bar_rects_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("key_shader.new_bar_rects_buffer"),
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            contents: &bytemuck::cast_slice(&self.bar_rects),
+        });
+        self.bar_rects.truncate(old_len);
+        self.bar_rects_buffer = new_bar_rects_buffer;
+        self.recreate_bind_group();
+    }
+}
+
 #[derive(Clone)]
 pub struct CustomCallback {
     pub inner: Arc<Mutex<CustomCallbackInner>>,
 }
 
 impl CustomCallback {
-    pub fn new(cc: &eframe::CreationContext, key_properties: &[KeyProperty]) -> Self {
+    pub fn new(
+        cc: &eframe::CreationContext,
+        key_properties: &[KeyProperty],
+        window_size: [f32; 2],
+    ) -> Self {
         let render_state = cc.wgpu_render_state.as_ref().unwrap();
         let device = &render_state.device;
         let shader = device.create_shader_module(include_wgsl!("key_shader.wgsl"));
@@ -137,11 +190,13 @@ impl CustomCallback {
             multiview: None,
             cache: None,
         });
-        let uniforms_buffer = device.create_buffer(&BufferDescriptor {
+        let [width, height] = window_size;
+        let uniforms_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("key_shader.uniforms_buffer"),
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
-            size: std::mem::size_of::<Uniforms>() as _,
-            mapped_at_creation: false,
+            usage: wgpu::BufferUsages::UNIFORM,
+            contents: bytemuck::bytes_of(&Uniforms {
+                screen_size: ScreenSize { width, height },
+            }),
         });
         let properties_contents: Box<_> = key_properties
             .iter()
@@ -202,30 +257,16 @@ impl CustomCallback {
         Self { inner }
     }
 
-    fn recreate_bind_group(inner: &mut MutexGuard<CustomCallbackInner>) {
-        let new_bind_group = inner.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("key_shader.bind_group"),
-            layout: &inner.bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: inner.uniforms_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: inner.properties_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: inner.bar_rects_buffer.as_entire_binding(),
-                },
-            ],
-        });
-        inner.bind_group = new_bind_group;
-    }
-
-    pub fn reload(&self, key_properties: &[KeyProperty]) {
+    pub fn reload(&self, key_properties: &[KeyProperty], window_size: [f32; 2]) {
         let mut inner = self.inner.lock();
+        let [width, height] = window_size;
+        let new_uniforms_buffer = inner.device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("key_shader.new_uniforms_buffer"),
+            usage: wgpu::BufferUsages::UNIFORM,
+            contents: bytemuck::bytes_of(&Uniforms {
+                screen_size: ScreenSize { width, height },
+            }),
+        });
         let properties_contents: Box<_> = key_properties
             .iter()
             .map(|key_property| Property {
@@ -249,33 +290,9 @@ impl CustomCallback {
             usage: wgpu::BufferUsages::STORAGE,
             contents: bytemuck::cast_slice(&properties_contents),
         });
+        inner.uniforms_buffer = new_uniforms_buffer;
         inner.properties_buffer = new_properties_buffer;
-        Self::recreate_bind_group(&mut inner);
-    }
-
-    fn update_bar_rects_buffer(
-        inner: &mut MutexGuard<CustomCallbackInner>,
-        queue: &eframe::wgpu::Queue,
-    ) {
-        if inner.bar_rects.len() * std::mem::size_of::<BarRect>()
-            <= inner.bar_rects_buffer.size() as usize
-        {
-            queue.write_buffer(
-                &inner.bar_rects_buffer,
-                0,
-                bytemuck::cast_slice(&inner.bar_rects),
-            );
-            return;
-        }
-        let new_len = inner.bar_rects.capacity();
-        inner.bar_rects.resize(new_len, Default::default());
-        let new_bar_rects_buffer = inner.device.create_buffer_init(&BufferInitDescriptor {
-            label: Some("key_shader.new_bar_rects_buffer"),
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-            contents: &bytemuck::cast_slice(&inner.bar_rects),
-        });
-        inner.bar_rects_buffer = new_bar_rects_buffer;
-        Self::recreate_bind_group(inner);
+        inner.recreate_bind_group();
     }
 }
 
@@ -284,14 +301,11 @@ impl eframe::egui_wgpu::CallbackTrait for CustomCallback {
         &self,
         _device: &eframe::wgpu::Device,
         queue: &eframe::wgpu::Queue,
-        screen_descriptor: &eframe::egui_wgpu::ScreenDescriptor,
+        _screen_descriptor: &eframe::egui_wgpu::ScreenDescriptor,
         _egui_encoder: &mut eframe::wgpu::CommandEncoder,
         _callback_resources: &mut eframe::egui_wgpu::CallbackResources,
     ) -> Vec<eframe::wgpu::CommandBuffer> {
-        let screen_size = screen_descriptor.size_in_pixels.map(|x| x as f32);
-        let mut inner = self.inner.lock();
-        queue.write_buffer(&inner.uniforms_buffer, 0, bytemuck::bytes_of(&screen_size));
-        Self::update_bar_rects_buffer(&mut inner, queue);
+        self.inner.lock().update_bar_rects_buffer(queue);
         Default::default()
     }
 
