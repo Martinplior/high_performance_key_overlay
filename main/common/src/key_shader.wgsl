@@ -213,7 +213,7 @@ fn fs_main(input: FragmentInput) -> @location(0) vec4<f32> {
             distance = clip_right - frag_coord.x;
         }
     }
-    let fade_factor = select(0.0, clamp(distance / fade_length, 0.0, 1.0), has_fade);
+    let fade_factor = select(1.0, clamp(distance / fade_length, 0.0, 1.0), has_fade);
     color = mix(transparent, color, fade_factor);
     return color;
 }
