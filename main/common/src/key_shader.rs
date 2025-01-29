@@ -169,7 +169,7 @@ impl CustomCallback {
         let bar_rects_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("key_shader.bar_rects_buffer"),
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-            contents: bytemuck::cast_slice(&[BarRect::default()]),
+            contents: bytemuck::cast_slice(&[BarRect::default(); 1024]),
         });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("key_shader.bind_group"),

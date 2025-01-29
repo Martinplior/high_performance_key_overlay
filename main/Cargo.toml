@@ -11,19 +11,19 @@ members = [
 common = { path = "./common" }
 
 eframe = { version = "0.30.0", default-features = false, features = ["wgpu"] }
-egui = { version = "0.30.0", features = ["serde"] }
-epaint = "0.30.0"
+egui = { version = "0.30.0", default-features = false, features = ["serde", "default_fonts"] }
+epaint = { version = "0.30.0", default-features = false }
 
-serde = { version = "1.0.217", features = ["derive"] }
-serde_json = "1.0.138"
-font-kit = "0.14.2"
-owned_ttf_parser = "0.25.0"
-crossbeam = "0.8.4"
-parking_lot = "0.12.3"
-bytemuck = { version = "1.21.0", features = ["derive"] }
-rfd = "0.15.2"
-image = "0.25.5"
-mimalloc = "0.1.43"
+serde = { version = "1.0.217", default-features = false, features = ["derive"] }
+serde_json = { version = "1.0.138", default-features = false, features = ["std"] }
+font-kit = { version = "0.14.2", default-features = false, features = ["source"]}
+owned_ttf_parser = { version = "0.25.0", default-features = false }
+crossbeam = { version = "0.8.4", default-features = false, features = ["std"] }
+parking_lot = { version = "0.12.3", default-features = false }
+bytemuck = { version = "1.21.0", default-features = false, features = ["derive"] }
+rfd = { version = "0.15.2", default-features = false }
+image = { version = "0.25.5", default-features = false }
+mimalloc = { version = "0.1.43", default-features = false }
 
 windows = { version = "0.59.0", features = [
     "Win32_Foundation",

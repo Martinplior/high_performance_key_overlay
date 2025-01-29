@@ -1,5 +1,7 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
+use std::sync::Arc;
+
 pub mod kps_dashboard_app;
 pub mod main_app;
 pub mod setting_app;
@@ -44,7 +46,11 @@ fn common_eframe_native_options(vsync: bool) -> eframe::NativeOptions {
             wgpu_setup: WgpuSetup::CreateNew {
                 supported_backends: Backends::VULKAN | Backends::GL,
                 power_preference: PowerPreference::HighPerformance,
-                device_descriptor,
+                device_descriptor: Arc::new(move |adapter| {
+                    let mut r = device_descriptor(adapter);
+                    r.required_limits = eframe::wgpu::Limits::downlevel_defaults();
+                    r
+                }),
             },
             present_mode: if vsync {
                 PresentMode::AutoVsync
