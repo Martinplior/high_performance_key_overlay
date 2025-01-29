@@ -111,28 +111,38 @@ fn Rect_from_BarRect(
     up_down_x_range: Rangef,
     left_right_y_range: Rangef
 ) -> Rect {
-    switch property.direction.v {
-        case Direction_UP.v {
-            let head = bar_pos_remap_up(-head, property);
-            let tail = bar_pos_remap_up(-tail, property);
-            return Rect_from_x_y_ranges(up_down_x_range, Rangef(head, tail));
-        }
-        case Direction_DOWN.v {
-            let head = bar_pos_remap_down(head, property);
-            let tail = bar_pos_remap_down(tail, property);
-            return Rect_from_x_y_ranges(up_down_x_range, Rangef(tail, head));
-        }
-        case Direction_LEFT.v {
-            let head = bar_pos_remap_left(-head, property);
-            let tail = bar_pos_remap_left(-tail, property);
-            return Rect_from_x_y_ranges(Rangef(head, tail), left_right_y_range);
-        }
-        case Direction_RIGHT.v, default {
-            let head = bar_pos_remap_right(head, property);
-            let tail = bar_pos_remap_right(tail, property);
-            return Rect_from_x_y_ranges(Rangef(tail, head), left_right_y_range);
-        }
-    }
+    let direction = property.direction;
+
+    let is_up = direction.v == Direction_UP.v;
+    let is_down = direction.v == Direction_DOWN.v;
+    let is_up_or_down = is_up || is_down;
+    let is_left = direction.v == Direction_LEFT.v;
+
+    let up_head = bar_pos_remap_up(-head, property);
+    let up_tail = bar_pos_remap_up(-tail, property);
+    let down_head = bar_pos_remap_down(head, property);
+    let down_tail = bar_pos_remap_down(tail, property);
+    let left_head = bar_pos_remap_left(-head, property);
+    let left_tail = bar_pos_remap_left(-tail, property);
+    let right_head = bar_pos_remap_right(head, property);
+    let right_tail = bar_pos_remap_right(tail, property);
+
+    let up_rect = Rect_from_x_y_ranges(up_down_x_range, Rangef(up_head, up_tail));
+    let down_rect = Rect_from_x_y_ranges(up_down_x_range, Rangef(down_tail, down_head));
+    let left_rect = Rect_from_x_y_ranges(Rangef(left_head, left_tail), left_right_y_range);
+    let right_rect = Rect_from_x_y_ranges(Rangef(right_tail, right_head), left_right_y_range);
+
+    let min = select(
+        select(right_rect.min, left_rect.min, is_left),
+        select(down_rect.min, up_rect.min, is_up),
+        is_up_or_down
+    );
+    let max = select(
+        select(right_rect.max, left_rect.max, is_left),
+        select(down_rect.max, up_rect.max, is_up),
+        is_up_or_down
+    );
+    return Rect(min, max);
 }
 
 struct VertexInput {
@@ -175,45 +185,52 @@ struct FragmentInput {
     @location(0) property_index: u32,
 }
 
+fn calc_distance(frag_coord: vec2<f32>, property: Property) -> f32 {
+    let key_position = property.key_position;
+    let has_max_distance = bool(property.has_max_distance);
+    let max_distance = property.max_distance;
+
+    let direction = property.direction;
+
+    let is_up = direction.v == Direction_UP.v;
+    let is_down = direction.v == Direction_DOWN.v;
+    let is_up_or_down = is_up || is_down;
+    let is_left = direction.v == Direction_LEFT.v;
+
+    let clip_up = select(0.0, key_position.y - max_distance, has_max_distance);
+    let clip_down = select(
+        uniforms.screen_size.height,
+        key_position.y + property.height + max_distance,
+        has_max_distance
+    );
+    let clip_left = select(0.0, key_position.x - max_distance, has_max_distance);
+    let clip_right = select(
+        uniforms.screen_size.width,
+        key_position.x + property.width + max_distance,
+        has_max_distance
+    );
+
+    let up_distance = frag_coord.y - clip_up;
+    let down_distance = clip_down - frag_coord.y;
+    let left_distance = frag_coord.x - clip_left;
+    let right_distance = clip_right - frag_coord.x;
+
+    return select(
+        select(right_distance, left_distance, is_left),
+        select(down_distance, up_distance, is_up),
+        is_up_or_down
+    );
+}
+
 @fragment
 fn fs_main(input: FragmentInput) -> @location(0) vec4<f32> {
     let frag_coord = input.coord.xy;
     let property = properties[input.property_index];
-    let key_position = property.key_position;
     let has_fade = bool(property.has_fade);
-    let has_max_distance = bool(property.has_max_distance);
-    let max_distance = property.max_distance;
     let fade_length = property.fade_length;
     let transparent = vec4<f32>(0.0);
-    var color = property.pressed_color;
-    var distance: f32;
-    switch property.direction.v {
-        case Direction_UP.v {
-            let clip_up = select(0.0, key_position.y - max_distance, has_max_distance);
-            distance = frag_coord.y - clip_up;
-        }
-        case Direction_DOWN.v {
-            let clip_down = select(
-                uniforms.screen_size.height,
-                key_position.y + property.height + max_distance,
-                has_max_distance
-            );
-            distance = clip_down - frag_coord.y;
-        }
-        case Direction_LEFT.v {
-            let clip_left = select(0.0, key_position.x - max_distance, has_max_distance);
-            distance = frag_coord.x - clip_left;
-        }
-        case Direction_RIGHT.v, default {
-            let clip_right = select(
-                uniforms.screen_size.width,
-                key_position.x + property.width + max_distance,
-                has_max_distance
-            );
-            distance = clip_right - frag_coord.x;
-        }
-    }
+    let color = property.pressed_color;
+    let distance = calc_distance(frag_coord, property);
     let fade_factor = select(1.0, clamp(distance / fade_length, 0.0, 1.0), has_fade);
-    color = mix(transparent, color, fade_factor);
-    return color;
+    return mix(transparent, color, fade_factor);
 }
