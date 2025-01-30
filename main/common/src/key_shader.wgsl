@@ -26,9 +26,9 @@ struct Property {
 }
 
 struct BarRect {
-    property_index: u32,
-    begin_duration_secs: f32,
-    end_duration_secs: f32,
+    @location(0) property_index: u32,
+    @location(1) begin_duration_secs: f32,
+    @location(2) end_duration_secs: f32,
 }
 
 struct Uniforms {
@@ -50,9 +50,6 @@ var<uniform> uniforms: Uniforms;
 
 @group(0) @binding(1)
 var<storage, read> properties: array<Property>;
-
-@group(0) @binding(2)
-var<storage, read> bar_rects: array<BarRect>;
 
 fn remap(pos: vec2<f32>) -> vec2<f32> {
     let screen_size_vec = vec2<f32>(uniforms.screen_size.width, uniforms.screen_size.height);
@@ -147,7 +144,6 @@ fn Rect_from_BarRect(
 
 struct VertexInput {
     @builtin(vertex_index) vertex_index: u32,
-    @builtin(instance_index) instance_index: u32,
 }
 
 struct VertexOuptut {
@@ -156,8 +152,7 @@ struct VertexOuptut {
 }
 
 @vertex
-fn vs_main(input: VertexInput) -> VertexOuptut {
-    let bar_rect = bar_rects[input.instance_index];
+fn vs_main(input: VertexInput, bar_rect: BarRect) -> VertexOuptut {
     let property = properties[bar_rect.property_index];
     let up_down_x_range = up_down_x_range(property);
     let left_right_y_range = left_right_y_range(property);

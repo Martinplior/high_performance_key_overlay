@@ -1,10 +1,11 @@
-use std::{num::NonZeroU64, sync::Arc};
+use std::{num::NonZero, sync::Arc};
 
 use eframe::wgpu::{
     self, include_wgsl,
     util::{BufferInitDescriptor, DeviceExt},
-    BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType, FragmentState,
-    PipelineLayoutDescriptor, PrimitiveState, RenderPipelineDescriptor, ShaderStages, VertexState,
+    BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType,
+    BufferDescriptor, FragmentState, PipelineLayoutDescriptor, PrimitiveState,
+    RenderPipelineDescriptor, ShaderStages, VertexAttribute, VertexBufferLayout, VertexState,
 };
 use egui::Color32;
 use parking_lot::Mutex;
@@ -50,12 +51,12 @@ struct Uniforms {
 
 pub struct CustomCallbackInner {
     device: Arc<wgpu::Device>,
+    vertex_buffer: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
     uniforms_buffer: wgpu::Buffer,
     properties_buffer: wgpu::Buffer,
-    bar_rects_buffer: wgpu::Buffer,
     pub bar_rects: Vec<BarRect>,
 }
 
@@ -73,39 +74,35 @@ impl CustomCallbackInner {
                     binding: 1,
                     resource: self.properties_buffer.as_entire_binding(),
                 },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: self.bar_rects_buffer.as_entire_binding(),
-                },
             ],
         });
         self.bind_group = new_bind_group;
     }
 
-    fn update_bar_rects_buffer(&mut self, queue: &eframe::wgpu::Queue) {
+    fn vertex_buffer_grow(&mut self) {
+        let size = self.vertex_buffer.size() * 2;
+        let new_vertex_buffer = self.device.create_buffer(&BufferDescriptor {
+            label: Some("key_shader.new_vertex_buffer"),
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            size,
+            mapped_at_creation: false,
+        });
+        self.vertex_buffer = new_vertex_buffer;
+    }
+
+    fn vertex_buffer_update(&mut self, queue: &eframe::wgpu::Queue) {
         if self.bar_rects.is_empty() {
             return;
         }
         let size = self.bar_rects.len() * std::mem::size_of::<BarRect>();
-        if size <= self.bar_rects_buffer.size() as usize {
-            let size = NonZeroU64::new(size as u64).unwrap();
-            let mut view = queue
-                .write_buffer_with(&self.bar_rects_buffer, 0, size)
-                .unwrap();
-            view.copy_from_slice(bytemuck::cast_slice(&self.bar_rects));
-            return;
+        if size > self.vertex_buffer.size() as usize {
+            self.vertex_buffer_grow();
         }
-        let old_len = self.bar_rects.len();
-        let new_len = self.bar_rects.capacity();
-        self.bar_rects.resize(new_len, Default::default());
-        let new_bar_rects_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
-            label: Some("key_shader.new_bar_rects_buffer"),
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-            contents: &bytemuck::cast_slice(&self.bar_rects),
-        });
-        self.bar_rects.truncate(old_len);
-        self.bar_rects_buffer = new_bar_rects_buffer;
-        self.recreate_bind_group();
+        let size = NonZero::new(size as u64).unwrap();
+        let mut view = queue
+            .write_buffer_with(&self.vertex_buffer, 0, size)
+            .unwrap();
+        view.copy_from_slice(bytemuck::cast_slice(&self.bar_rects));
     }
 }
 
@@ -132,7 +129,7 @@ impl CustomCallback {
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: NonZeroU64::new(std::mem::size_of::<Uniforms>() as _),
+                        min_binding_size: NonZero::new(std::mem::size_of::<Uniforms>() as _),
                     },
                     count: None,
                 },
@@ -142,17 +139,7 @@ impl CustomCallback {
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Storage { read_only: true },
                         has_dynamic_offset: false,
-                        min_binding_size: NonZeroU64::new(std::mem::size_of::<Property>() as _),
-                    },
-                    count: None,
-                },
-                BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: ShaderStages::VERTEX_FRAGMENT,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: NonZeroU64::new(std::mem::size_of::<BarRect>() as _),
+                        min_binding_size: NonZero::new(std::mem::size_of::<Property>() as _),
                     },
                     count: None,
                 },
@@ -163,6 +150,12 @@ impl CustomCallback {
             bind_group_layouts: &[&bind_group_layout],
             push_constant_ranges: &[],
         });
+        let vertex_buffer = device.create_buffer(&BufferDescriptor {
+            label: Some("key_shader.vertex_buffer"),
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            size: 1024 * std::mem::size_of::<BarRect>() as u64,
+            mapped_at_creation: false,
+        });
         let pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
             label: Some("key_shader.pipeline"),
             layout: Some(&pipeline_layout),
@@ -170,7 +163,27 @@ impl CustomCallback {
                 module: &shader,
                 entry_point: Some("vs_main"),
                 compilation_options: Default::default(),
-                buffers: &[],
+                buffers: &[VertexBufferLayout {
+                    array_stride: std::mem::size_of::<BarRect>() as u64,
+                    step_mode: wgpu::VertexStepMode::Instance,
+                    attributes: &[
+                        VertexAttribute {
+                            format: wgpu::VertexFormat::Uint32,
+                            offset: 0,
+                            shader_location: 0,
+                        },
+                        VertexAttribute {
+                            format: wgpu::VertexFormat::Float32,
+                            offset: 4,
+                            shader_location: 1,
+                        },
+                        VertexAttribute {
+                            format: wgpu::VertexFormat::Float32,
+                            offset: 8,
+                            shader_location: 2,
+                        },
+                    ],
+                }],
             },
             primitive: PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleStrip,
@@ -221,11 +234,6 @@ impl CustomCallback {
             usage: wgpu::BufferUsages::STORAGE,
             contents: bytemuck::cast_slice(&properties_contents),
         });
-        let bar_rects_buffer = device.create_buffer_init(&BufferInitDescriptor {
-            label: Some("key_shader.bar_rects_buffer"),
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-            contents: bytemuck::cast_slice(&[BarRect::default(); 1024]),
-        });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("key_shader.bind_group"),
             layout: &bind_group_layout,
@@ -238,20 +246,16 @@ impl CustomCallback {
                     binding: 1,
                     resource: properties_buffer.as_entire_binding(),
                 },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: bar_rects_buffer.as_entire_binding(),
-                },
             ],
         });
         let inner = Arc::new(Mutex::new(CustomCallbackInner {
             device: device.clone(),
+            vertex_buffer,
             pipeline,
             bind_group_layout,
             bind_group,
             uniforms_buffer,
             properties_buffer,
-            bar_rects_buffer,
             bar_rects: Vec::with_capacity(1024),
         }));
         Self { inner }
@@ -305,7 +309,7 @@ impl eframe::egui_wgpu::CallbackTrait for CustomCallback {
         _egui_encoder: &mut eframe::wgpu::CommandEncoder,
         _callback_resources: &mut eframe::egui_wgpu::CallbackResources,
     ) -> Vec<eframe::wgpu::CommandBuffer> {
-        self.inner.lock().update_bar_rects_buffer(queue);
+        self.inner.lock().vertex_buffer_update(queue);
         Default::default()
     }
 
@@ -316,8 +320,11 @@ impl eframe::egui_wgpu::CallbackTrait for CustomCallback {
         _callback_resources: &eframe::egui_wgpu::CallbackResources,
     ) {
         let inner = self.inner.lock();
+        let bar_rects_len = inner.bar_rects.len();
+        let slice_bytes = (bar_rects_len * std::mem::size_of::<BarRect>()) as u64;
         render_pass.set_pipeline(&inner.pipeline);
         render_pass.set_bind_group(0, &inner.bind_group, &[]);
-        render_pass.draw(0..4, 0..inner.bar_rects.len() as u32);
+        render_pass.set_vertex_buffer(0, inner.vertex_buffer.slice(..slice_bytes));
+        render_pass.draw(0..4, 0..bar_rects_len as u32);
     }
 }
