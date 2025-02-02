@@ -1,6 +1,7 @@
 use std::mem::ManuallyDrop;
 use std::mem::MaybeUninit;
 use std::thread::JoinHandle;
+use std::time::Instant;
 
 use windows::core::PCWSTR;
 use windows::Win32::Foundation::HWND;
@@ -21,6 +22,12 @@ use windows::Win32::UI::WindowsAndMessaging::WNDCLASSEXW;
 
 use crossbeam::channel::Sender as MpscSender;
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct WinMsg {
+    pub msg: MSG,
+    pub instant: Instant,
+}
+
 pub struct GlobalListener {
     msg_hwnd: HWND,
     thread: ManuallyDrop<JoinHandle<()>>,
@@ -30,7 +37,7 @@ impl GlobalListener {
     /// `msg_hook`: return true if you dont't want msg to be dispatched.
     /// `register_raw_input_hook`: register your raw input.
     pub fn new(
-        msg_hook: impl FnMut(&MSG) -> bool + Send + 'static,
+        msg_hook: impl FnMut(&WinMsg) -> bool + Send + 'static,
         register_raw_input_hook: impl FnOnce(&HWND) + Send + 'static,
     ) -> Self {
         Self::init_window_class();
@@ -76,7 +83,7 @@ impl GlobalListener {
     }
 
     fn thread_main(
-        mut msg_hook: impl FnMut(&MSG) -> bool,
+        mut msg_hook: impl FnMut(&WinMsg) -> bool,
         register_raw_input_hook: impl FnOnce(&HWND),
         hwnd_sender: MpscSender<usize>,
     ) {
@@ -106,15 +113,18 @@ impl GlobalListener {
         loop {
             let mut msg = MaybeUninit::uninit();
             let r = unsafe { GetMessageW(msg.as_mut_ptr(), Some(hwnd), 0, 0) }.0;
-            match r {
-                0 | -1 => break,
-                _ => (),
+            let instant = Instant::now();
+            if matches!(r, 0 | -1) {
+                break;
             }
-            let msg = unsafe { msg.assume_init() };
+            let msg = WinMsg {
+                msg: unsafe { msg.assume_init() },
+                instant,
+            };
             if msg_hook(&msg) {
                 continue;
             }
-            unsafe { DispatchMessageW(&msg) };
+            unsafe { DispatchMessageW(&msg.msg) };
         }
     }
 }

@@ -1,16 +1,14 @@
-use std::time::Instant;
-
 use windows::Win32::{
     Foundation::HWND,
     UI::{
         Input::KeyboardAndMouse::{VIRTUAL_KEY, VK_SHIFT},
-        WindowsAndMessaging::{MSG, RI_KEY_BREAK, RI_KEY_E0, WM_INPUT},
+        WindowsAndMessaging::{RI_KEY_BREAK, RI_KEY_E0, WM_INPUT},
     },
 };
 
 use crossbeam::channel::Sender as MpscSender;
 
-use crate::{key::Key, key_message::KeyMessage, win_utils};
+use crate::{global_listener::WinMsg, key::Key, key_message::KeyMessage, win_utils};
 
 #[derive(Debug, Default)]
 pub struct HookShared {
@@ -34,9 +32,9 @@ pub fn create_register_raw_input_hook() -> impl FnOnce(&HWND) {
 pub fn create_msg_hook(
     msg_sender: MpscSender<KeyMessage>,
     hook_shared: HookShared,
-) -> impl FnMut(&MSG) -> bool {
+) -> impl FnMut(&WinMsg) -> bool {
     move |msg| {
-        if msg.message == WM_INPUT {
+        if msg.msg.message == WM_INPUT {
             handle_raw_input(msg, &msg_sender);
             let ctx = &hook_shared.egui_ctx;
             (!ctx.has_requested_repaint()).then(|| ctx.request_repaint());
@@ -47,8 +45,8 @@ pub fn create_msg_hook(
 }
 
 #[inline(always)]
-fn handle_raw_input(msg: &MSG, msg_sender: &MpscSender<KeyMessage>) {
-    let raw_input = win_utils::RawInput::from_msg(msg);
+fn handle_raw_input(msg: &WinMsg, msg_sender: &MpscSender<KeyMessage>) {
+    let raw_input = win_utils::RawInput::from_msg(&msg.msg);
     let win_utils::RawInput::Keyboard(keyboard) = raw_input else {
         unreachable!("unexpeced raw input");
     };
@@ -66,7 +64,7 @@ fn handle_raw_input(msg: &MSG, msg_sender: &MpscSender<KeyMessage>) {
         return;
     }
     let is_pressed = (keyboard.Flags & RI_KEY_BREAK as u16) == 0;
-    let key_message = KeyMessage::new(key, is_pressed, Instant::now());
+    let key_message = KeyMessage::new(key, is_pressed, msg.instant);
     #[cfg(debug_assertions)]
     println!("{:?}", key_message);
     msg_sender.send(key_message).unwrap();
