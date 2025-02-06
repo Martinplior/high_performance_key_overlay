@@ -108,13 +108,6 @@ fn Rect_from_BarRect(
     up_down_x_range: Rangef,
     left_right_y_range: Rangef
 ) -> Rect {
-    let direction = property.direction;
-
-    let is_up = direction.v == Direction_UP.v;
-    let is_down = direction.v == Direction_DOWN.v;
-    let is_up_or_down = is_up || is_down;
-    let is_left = direction.v == Direction_LEFT.v;
-
     let up_head = bar_pos_remap_up(-head, property);
     let up_tail = bar_pos_remap_up(-tail, property);
     let down_head = bar_pos_remap_down(head, property);
@@ -129,17 +122,9 @@ fn Rect_from_BarRect(
     let left_rect = Rect_from_x_y_ranges(Rangef(left_head, left_tail), left_right_y_range);
     let right_rect = Rect_from_x_y_ranges(Rangef(right_tail, right_head), left_right_y_range);
 
-    let min = select(
-        select(right_rect.min, left_rect.min, is_left),
-        select(down_rect.min, up_rect.min, is_up),
-        is_up_or_down
-    );
-    let max = select(
-        select(right_rect.max, left_rect.max, is_left),
-        select(down_rect.max, up_rect.max, is_up),
-        is_up_or_down
-    );
-    return Rect(min, max);
+    let rect_arr = array<Rect, 4>(up_rect, down_rect, left_rect, right_rect);
+
+    return rect_arr[property.direction.v];
 }
 
 struct VertexInput {
@@ -185,13 +170,6 @@ fn calc_distance(frag_coord: vec2<f32>, property: Property) -> f32 {
     let has_max_distance = bool(property.has_max_distance);
     let max_distance = property.max_distance;
 
-    let direction = property.direction;
-
-    let is_up = direction.v == Direction_UP.v;
-    let is_down = direction.v == Direction_DOWN.v;
-    let is_up_or_down = is_up || is_down;
-    let is_left = direction.v == Direction_LEFT.v;
-
     let clip_up = select(0.0, key_position.y - max_distance, has_max_distance);
     let clip_down = select(
         uniforms.screen_size.height,
@@ -210,11 +188,9 @@ fn calc_distance(frag_coord: vec2<f32>, property: Property) -> f32 {
     let left_distance = frag_coord.x - clip_left;
     let right_distance = clip_right - frag_coord.x;
 
-    return select(
-        select(right_distance, left_distance, is_left),
-        select(down_distance, up_distance, is_up),
-        is_up_or_down
-    );
+    let distance_arr = array<f32, 4>(up_distance, down_distance, left_distance, right_distance);
+
+    return distance_arr[property.direction.v];
 }
 
 @fragment
