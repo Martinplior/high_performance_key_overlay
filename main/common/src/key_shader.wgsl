@@ -79,22 +79,6 @@ fn left_right_y_range(property: Property) -> Rangef {
     return Rangef(min, max);
 }
 
-fn bar_pos_remap_up(pos: f32, property: Property) -> f32 {
-    return property.key_position.y + pos;
-}
-
-fn bar_pos_remap_down(pos: f32, property: Property) -> f32 {
-    return property.key_position.y + property.height + pos;
-}
-
-fn bar_pos_remap_left(pos: f32, property: Property) -> f32 {
-    return property.key_position.x + pos;
-}
-
-fn bar_pos_remap_right(pos: f32, property: Property) -> f32 {
-    return property.key_position.x + property.width + pos;
-}
-
 fn Rect_from_x_y_ranges(x_range: Rangef, y_range: Rangef) -> Rect {
     let min = vec2<f32>(x_range.min, y_range.min);
     let max = vec2<f32>(x_range.max, y_range.max);
@@ -108,14 +92,27 @@ fn Rect_from_BarRect(
     up_down_x_range: Rangef,
     left_right_y_range: Rangef
 ) -> Rect {
-    let up_head = bar_pos_remap_up(-head, property);
-    let up_tail = bar_pos_remap_up(-tail, property);
-    let down_head = bar_pos_remap_down(head, property);
-    let down_tail = bar_pos_remap_down(tail, property);
-    let left_head = bar_pos_remap_left(-head, property);
-    let left_tail = bar_pos_remap_left(-tail, property);
-    let right_head = bar_pos_remap_right(head, property);
-    let right_tail = bar_pos_remap_right(tail, property);
+    let key_position = property.key_position;
+    let base_vec = vec4<f32>(
+        key_position.y,
+        key_position.y + property.height,
+        key_position.x,
+        key_position.x + property.width
+    );
+    let src_head_vec = vec4<f32>(-head, head, -head, head);
+    let src_tail_vec = vec4<f32>(-tail, tail, -tail, tail);
+
+    let head_vec = base_vec + src_head_vec;
+    let tail_vec = base_vec + src_tail_vec;
+
+    let up_head = head_vec.x;
+    let down_head = head_vec.y;
+    let left_head = head_vec.z;
+    let right_head = head_vec.w;
+    let up_tail = tail_vec.x;
+    let down_tail = tail_vec.y;
+    let left_tail = tail_vec.z;
+    let right_tail = tail_vec.w;
 
     let up_rect = Rect_from_x_y_ranges(up_down_x_range, Rangef(up_head, up_tail));
     let down_rect = Rect_from_x_y_ranges(up_down_x_range, Rangef(down_tail, down_head));
@@ -151,10 +148,10 @@ fn vs_main(input: VertexInput, bar_rect: BarRect) -> VertexOuptut {
         left_right_y_range
     );
     let vertexes = array<vec2<f32>, 4>(
-        vec2<f32>(rect.min.x, rect.min.y),
+        rect.min,
         vec2<f32>(rect.max.x, rect.min.y),
         vec2<f32>(rect.min.x, rect.max.y),
-        vec2<f32>(rect.max.x, rect.max.y)
+        rect.max
     );
     let position = remap(vertexes[input.vertex_index]);
     return VertexOuptut(vec4<f32>(position, 0.0, 1.0), bar_rect.property_index);
@@ -170,27 +167,19 @@ fn calc_distance(frag_coord: vec2<f32>, property: Property) -> f32 {
     let has_max_distance = bool(property.has_max_distance);
     let max_distance = property.max_distance;
 
-    let clip_up = select(0.0, key_position.y - max_distance, has_max_distance);
-    let clip_down = select(
-        uniforms.screen_size.height,
+    let src_clip_vec = vec4<f32>(
+        max_distance - key_position.y,
         key_position.y + property.height + max_distance,
-        has_max_distance
+        max_distance - key_position.x,
+        key_position.x + property.width + max_distance
     );
-    let clip_left = select(0.0, key_position.x - max_distance, has_max_distance);
-    let clip_right = select(
-        uniforms.screen_size.width,
-        key_position.x + property.width + max_distance,
-        has_max_distance
-    );
-
-    let up_distance = frag_coord.y - clip_up;
-    let down_distance = clip_down - frag_coord.y;
-    let left_distance = frag_coord.x - clip_left;
-    let right_distance = clip_right - frag_coord.x;
-
-    let distance_arr = array<f32, 4>(up_distance, down_distance, left_distance, right_distance);
-
-    return distance_arr[property.direction.v];
+    let has_max_distance_vec = vec4<bool>(has_max_distance);
+    let screen_size = uniforms.screen_size;
+    let fallback_vec = vec4<f32>(0.0, screen_size.height, 0.0, screen_size.width);
+    let clip_vec = select(fallback_vec, src_clip_vec, has_max_distance_vec);
+    let frag_coord_vec = vec4<f32>(frag_coord.y, -frag_coord.y, frag_coord.x, -frag_coord.x);
+    let distance_vec = clip_vec + frag_coord_vec;
+    return distance_vec[property.direction.v];
 }
 
 @fragment
