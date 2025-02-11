@@ -275,18 +275,18 @@ impl<'a> KeyDrawingPipeline<'a> {
         self.key_properties
             .iter()
             .zip(self.key_draw_caches.iter())
+            .filter(|(key_property, _)| key_property.key_counter.0)
             .for_each(|(key_property, key_draw_cache)| {
-                if let (true, counter) = &key_property.key_counter {
-                    self.painter.text(
-                        key_property.position
-                            + egui::vec2(key_property.width / 2.0, key_property.height / 2.0)
-                            + counter.position.to_vec2(),
-                        egui::Align2::CENTER_CENTER,
-                        key_draw_cache.count,
-                        FontId::new(counter.font_size, self.font_family.clone()),
-                        key_draw_cache.key_counter_color,
-                    );
-                }
+                let counter = &key_property.key_counter.1;
+                self.painter.text(
+                    key_property.position
+                        + egui::vec2(key_property.width / 2.0, key_property.height / 2.0)
+                        + counter.position.to_vec2(),
+                    egui::Align2::CENTER_CENTER,
+                    key_draw_cache.count,
+                    FontId::new(counter.font_size, self.font_family.clone()),
+                    key_draw_cache.key_counter_color,
+                );
             });
     }
 }
