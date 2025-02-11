@@ -515,17 +515,17 @@ impl KeyPropertySettingRow {
     }
 
     fn handle_global_response_create_multiple(&mut self) {
-        let iter = (0..self.global_operation_cache.create_count)
-            .map(|_| {
-                let mut new_key_property = KeyProperty::default();
-                macro_rules! create_one {
+        let iter = (0..self.global_operation_cache.create_count).map(|_| {
+            let mut new_key_property = KeyProperty::default();
+            macro_rules! create_one {
                     ($($($token: tt).*),*) => {{
-                        $(new_key_property.$($token).* = self.global_key_property.$($token).*.clone());*
+                        $(new_key_property.$($token).* =
+                            self.global_key_property.$($token).*.clone());*
                     }};
                 }
-                match_global_key_property_check_states!(self, create_one);
-                new_key_property
-            });
+            match_global_key_property_check_states!(self, create_one);
+            new_key_property
+        });
         self.key_properties.extend(iter);
         self.request_reload = true;
     }
@@ -602,14 +602,352 @@ impl KeyPropertySettingRow {
         ui.separator();
     }
 
+    fn grid_key_bind_common(&mut self, ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {
+        egui::Label::new("按键绑定:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text(concat!(
+                "点击右边的选项，然后按下一个你想绑定的按键。\n",
+                "当然，你也可以在展开的选项中选一个。"
+            ));
+        let mut changed = false;
+        egui::ComboBox::from_id_salt(ui.next_auto_id())
+            .selected_text(key_property.key_bind.to_string())
+            .width(0.0)
+            .show_ui(ui, |ui| {
+                self.key_bind_menu_opened = true;
+                let key_to_scroll = self.key_binding.take().map(|key| {
+                    key_property.key_bind = key;
+                    changed = true;
+                    key
+                });
+                Key::iter().for_each(|key| {
+                    let response =
+                        ui.selectable_value(&mut key_property.key_bind, key, key.to_string());
+                    changed |= response.changed();
+                    key_to_scroll
+                        .filter(|&key_to_scroll| key_to_scroll == key)
+                        .map(|_| response.scroll_to_me(None));
+                });
+            })
+            .response
+            .on_hover_text("点击我，然后按下一个按键！");
+        changed
+    }
+
+    fn grid_key_text_and_text_color_common(
+        ui: &mut egui::Ui,
+        key_property: &mut KeyProperty,
+    ) -> bool {
+        egui::Label::new("按键文本:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text(concat!(
+                "支持Unicode，不过不能换行。\n",
+                "虽然能实现，但我想它并不需要换行。"
+            ));
+        let mut changed = false;
+        ui.horizontal(|ui| {
+            changed |= ui
+                .color_edit_button_srgba_unmultiplied(&mut key_property.text_color.0)
+                .changed();
+            changed |= egui::TextEdit::singleline(&mut key_property.key_text)
+                .show(ui)
+                .response
+                .changed();
+        });
+        changed
+    }
+
+    fn grid_font_size_common(ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {
+        egui::Label::new("字体大小:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text("按键文本字体的大小");
+        egui::Slider::new(&mut key_property.font_size, 1.0..=10_000.0)
+            .integer()
+            .logarithmic(true)
+            .drag_value_speed(1.0)
+            .ui(ui)
+            .changed()
+    }
+
+    fn grid_position_common(
+        ui: &mut egui::Ui,
+        key_property: &mut KeyProperty,
+        x_add_contents: impl FnOnce(&mut egui::Ui, &mut KeyProperty) -> bool,
+        y_add_contents: impl FnOnce(&mut egui::Ui, &mut KeyProperty) -> bool,
+    ) -> bool {
+        egui::Label::new("位置:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text("按键边框左上角的坐标");
+        let mut changed = false;
+        ui.vertical(|ui| {
+            ui.horizontal(|ui| changed |= x_add_contents(ui, key_property));
+            ui.horizontal(|ui| changed |= y_add_contents(ui, key_property));
+        });
+        changed
+    }
+
+    fn grid_position_x_common(ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {
+        egui::Label::new("x:").selectable(false).ui(ui);
+        egui::Slider::new(&mut key_property.position.x, -10_000.0..=10_000.0)
+            .integer()
+            .logarithmic(true)
+            .drag_value_speed(1.0)
+            .ui(ui)
+            .changed()
+    }
+
+    fn grid_position_y_common(ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {
+        egui::Label::new("y:").selectable(false).ui(ui);
+        egui::Slider::new(&mut key_property.position.y, -10_000.0..=10_000.0)
+            .integer()
+            .logarithmic(true)
+            .drag_value_speed(1.0)
+            .ui(ui)
+            .changed()
+    }
+
+    fn grid_width_common(ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {
+        egui::Label::new("宽度:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text("按键边框的宽度");
+        egui::Slider::new(&mut key_property.width, 3.0..=10_000.0)
+            .integer()
+            .logarithmic(true)
+            .drag_value_speed(1.0)
+            .ui(ui)
+            .changed()
+    }
+
+    fn grid_height_common(ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {
+        egui::Label::new("高度:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text("按键边框的高度");
+        egui::Slider::new(&mut key_property.height, 3.0..=10_000.0)
+            .integer()
+            .logarithmic(true)
+            .drag_value_speed(1.0)
+            .ui(ui)
+            .changed()
+    }
+
+    fn grid_thickness_common(ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {
+        egui::Label::new("边框厚度:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text("按键边框线的厚度");
+        egui::Slider::new(
+            &mut key_property.thickness,
+            1.0..=key_property.width.min(key_property.height) / 2.0 - 1.0,
+        )
+        .integer()
+        .logarithmic(true)
+        .drag_value_speed(1.0)
+        .ui(ui)
+        .changed()
+    }
+
+    fn grid_frame_color_common(ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {
+        egui::Label::new("边框颜色:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text("设置边框的颜色");
+        ui.color_edit_button_srgba_unmultiplied(&mut key_property.frame_color.0)
+            .changed()
+    }
+
+    fn grid_bar_speed_common(ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {
+        egui::Label::new("按键条速度:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text("按键条前进的速度");
+        egui::Slider::new(&mut key_property.bar_speed, 1.0..=10_000.0)
+            .integer()
+            .logarithmic(true)
+            .drag_value_speed(1.0)
+            .ui(ui)
+            .changed()
+    }
+
+    fn grid_pressed_color_common(ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {
+        egui::Label::new("按键条颜色:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text("设置按键条的颜色");
+        ui.color_edit_button_srgba_unmultiplied(&mut key_property.pressed_color.0)
+            .changed()
+    }
+
+    fn grid_max_distance_common(ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {
+        egui::Label::new("最大距离:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text(concat!(
+                "按键条能到达的最大距离。\n",
+                "勾选以启用自定义最大距离，\n",
+                "禁用时按键条在窗口边缘处消失。"
+            ));
+        let mut changed = false;
+        ui.horizontal(|ui| {
+            changed |= egui::Checkbox::without_text(&mut key_property.max_distance.0)
+                .ui(ui)
+                .changed();
+            let slider = egui::Slider::new(&mut key_property.max_distance.1, 1.0..=10_000.0)
+                .integer()
+                .logarithmic(true)
+                .drag_value_speed(1.0);
+            changed |= ui
+                .add_enabled(key_property.max_distance.0, slider)
+                .changed();
+        });
+        changed
+    }
+
+    fn grid_key_direction_common(ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {
+        egui::Label::new("按键方向:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text("按键条的前进方向");
+        let map = |direction: KeyDirection| match direction {
+            KeyDirection::Up => "上",
+            KeyDirection::Down => "下",
+            KeyDirection::Left => "左",
+            KeyDirection::Right => "右",
+        };
+        let mut changed = false;
+        egui::ComboBox::from_id_salt(ui.next_auto_id())
+            .selected_text(map(key_property.key_direction))
+            .width(0.0)
+            .show_ui(ui, |ui| {
+                use KeyDirection::*;
+                [(Up, "上"), (Down, "下"), (Left, "左"), (Right, "右")]
+                    .into_iter()
+                    .for_each(|(direction, name)| {
+                        changed |= ui
+                            .selectable_value(&mut key_property.key_direction, direction, name)
+                            .changed();
+                    });
+            });
+        changed
+    }
+
+    fn grid_fade_length_common(ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {
+        egui::Label::new("渐隐距离:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text(concat!("渐隐效果的距离。\n", "勾选以启用渐隐效果。"));
+        let mut changed = false;
+        ui.horizontal(|ui| {
+            changed |= egui::Checkbox::without_text(&mut key_property.fade_length.0)
+                .ui(ui)
+                .changed();
+            changed |= egui::Slider::new(&mut key_property.fade_length.1, 1.0..=10_000.0)
+                .integer()
+                .logarithmic(true)
+                .drag_value_speed(1.0)
+                .ui(ui)
+                .changed();
+        });
+        changed
+    }
+
+    fn grid_key_counter_enable_common(ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {
+        egui::Label::new("启用计数器:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text("勾选以启用计数器");
+        egui::Checkbox::without_text(&mut key_property.key_counter.0)
+            .ui(ui)
+            .changed()
+    }
+
+    fn grid_key_counter_position_common(
+        ui: &mut egui::Ui,
+        key_property: &mut KeyProperty,
+        x_add_contents: impl FnOnce(&mut egui::Ui, &mut KeyProperty) -> bool,
+        y_add_contents: impl FnOnce(&mut egui::Ui, &mut KeyProperty) -> bool,
+    ) -> bool {
+        egui::Label::new("计数器位置:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text("计数器中心点相对于按键边框中心点的位置");
+        let mut changed = false;
+        ui.vertical(|ui| {
+            ui.horizontal(|ui| changed |= x_add_contents(ui, key_property));
+            ui.horizontal(|ui| changed |= y_add_contents(ui, key_property));
+        });
+        changed
+    }
+
+    fn grid_key_counter_position_x_common(
+        ui: &mut egui::Ui,
+        key_property: &mut KeyProperty,
+    ) -> bool {
+        egui::Label::new("x:").selectable(false).ui(ui);
+        egui::Slider::new(
+            &mut key_property.key_counter.1.position.x,
+            -10_000.0..=10_000.0,
+        )
+        .integer()
+        .logarithmic(true)
+        .drag_value_speed(1.0)
+        .ui(ui)
+        .changed()
+    }
+
+    fn grid_key_counter_position_y_common(
+        ui: &mut egui::Ui,
+        key_property: &mut KeyProperty,
+    ) -> bool {
+        egui::Label::new("y:").selectable(false).ui(ui);
+        egui::Slider::new(
+            &mut key_property.key_counter.1.position.y,
+            -10_000.0..=10_000.0,
+        )
+        .integer()
+        .logarithmic(true)
+        .drag_value_speed(1.0)
+        .ui(ui)
+        .changed()
+    }
+
+    fn grid_key_counter_size_common(ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {
+        egui::Label::new("计数器大小:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text("计数器字体的大小");
+        egui::Slider::new(&mut key_property.key_counter.1.font_size, 1.0..=10_000.0)
+            .integer()
+            .logarithmic(true)
+            .drag_value_speed(1.0)
+            .ui(ui)
+            .changed()
+    }
+
+    fn grid_key_counter_color_common(ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {
+        egui::Label::new("计数器颜色:")
+            .selectable(false)
+            .ui(ui)
+            .on_hover_text("计数器文本的颜色");
+        ui.color_edit_button_srgba_unmultiplied(&mut key_property.key_counter.1.text_color.0)
+            .changed()
+    }
+
     fn show_column(&mut self, index: usize, ui: &mut egui::Ui) -> bool {
-        let key_property = self.key_properties.get_mut(index).unwrap();
-        let check_state = self.check_states.get_mut(index).unwrap();
+        // Safety: &mut self.key_properties[index] is guaranteed to be unique.
+        let key_property =
+            unsafe { NonNull::from(self.key_properties.get_mut(index).unwrap()).as_mut() };
 
         let mut changed = false;
 
         // check_state
         grid_new_row!(ui, {
+            let check_state = self.check_states.get_mut(index).unwrap();
             let text = "勾选或不勾选，这值得思考";
             egui::Label::new("选择:")
                 .selectable(false)
@@ -627,341 +965,112 @@ impl KeyPropertySettingRow {
                 .ui(ui)
                 .on_hover_text("序号会影响绘制顺序，序号小的先被绘制。");
             let response = egui::Label::new(index.to_string()).selectable(false).ui(ui);
-            if index == 9 {
-                response.on_hover_text("baka!");
-            }
+            (index == 9).then(|| response.on_hover_text("baka!"));
         });
 
         // key_bind
         grid_new_row!(ui, {
-            egui::Label::new("按键绑定:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text(concat!(
-                    "点击右边的选项，然后按下一个你想绑定的按键。\n",
-                    "当然，你也可以在展开的选项中选一个。"
-                ));
-            egui::ComboBox::from_id_salt(ui.next_auto_id())
-                .selected_text(key_property.key_bind.to_string())
-                .width(0.0)
-                .show_ui(ui, |ui| {
-                    self.key_bind_menu_opened = true;
-                    let key_to_scroll = self.key_binding.take().map(|key| {
-                        key_property.key_bind = key;
-                        changed = true;
-                        key
-                    });
-                    Key::iter().rev().for_each(|key| {
-                        let response =
-                            ui.selectable_value(&mut key_property.key_bind, key, key.to_string());
-                        changed |= response.changed();
-                        key_to_scroll.map(|key_to_scroll| {
-                            if key_to_scroll == key {
-                                response.scroll_to_me(None);
-                            }
-                        });
-                    });
-                })
-                .response
-                .on_hover_text("点击我，然后按下一个按键！");
+            changed |= self.grid_key_bind_common(ui, key_property);
         });
 
         // key_text & text_color
         grid_new_row!(ui, {
-            egui::Label::new("按键文本:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text(concat!(
-                    "支持Unicode，不过不能换行。\n",
-                    "虽然能实现，但我想它并不需要换行。"
-                ));
-            ui.horizontal(|ui| {
-                changed |= ui
-                    .color_edit_button_srgba_unmultiplied(&mut key_property.text_color.0)
-                    .changed();
-                changed |= egui::TextEdit::singleline(&mut key_property.key_text)
-                    .show(ui)
-                    .response
-                    .changed();
-            });
+            changed |= Self::grid_key_text_and_text_color_common(ui, key_property);
         });
 
         // font_size
         grid_new_row!(ui, {
-            egui::Label::new("字体大小:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("按键文本字体的大小");
-            changed |= egui::Slider::new(&mut key_property.font_size, 1.0..=10_000.0)
-                .integer()
-                .logarithmic(true)
-                .drag_value_speed(1.0)
-                .ui(ui)
-                .changed();
+            changed |= Self::grid_font_size_common(ui, key_property);
         });
 
         // position
         grid_new_row!(ui, {
-            egui::Label::new("位置:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("按键边框左上角的坐标");
-            ui.vertical(|ui| {
-                ui.horizontal(|ui| {
-                    egui::Label::new("x:").selectable(false).ui(ui);
-                    egui::Slider::new(&mut key_property.position.x, -10_000.0..=10_000.0)
-                        .integer()
-                        .logarithmic(true)
-                        .drag_value_speed(1.0)
-                        .ui(ui)
-                        .changed()
-                        .then(|| changed = true);
-                });
-                ui.horizontal(|ui| {
-                    egui::Label::new("y:").selectable(false).ui(ui);
-                    egui::Slider::new(&mut key_property.position.y, -10_000.0..=10_000.0)
-                        .integer()
-                        .logarithmic(true)
-                        .drag_value_speed(1.0)
-                        .ui(ui)
-                        .changed()
-                        .then(|| changed = true);
-                });
-            });
+            changed |= Self::grid_position_common(
+                ui,
+                key_property,
+                Self::grid_position_x_common,
+                Self::grid_position_y_common,
+            );
         });
 
         // width
         grid_new_row!(ui, {
-            egui::Label::new("宽度:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("按键边框的宽度");
-            changed |= egui::Slider::new(&mut key_property.width, 3.0..=10_000.0)
-                .integer()
-                .logarithmic(true)
-                .drag_value_speed(1.0)
-                .ui(ui)
-                .changed();
+            changed |= Self::grid_width_common(ui, key_property);
         });
 
         // height
         grid_new_row!(ui, {
-            egui::Label::new("高度:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("按键边框的高度");
-            changed |= egui::Slider::new(&mut key_property.height, 3.0..=10_000.0)
-                .integer()
-                .logarithmic(true)
-                .drag_value_speed(1.0)
-                .ui(ui)
-                .changed();
+            changed |= Self::grid_height_common(ui, key_property);
         });
 
         // thickness
         grid_new_row!(ui, {
-            egui::Label::new("边框厚度:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("按键边框线的厚度");
-            changed |= egui::Slider::new(
-                &mut key_property.thickness,
-                1.0..=key_property.width.min(key_property.height) / 2.0 - 1.0,
-            )
-            .integer()
-            .logarithmic(true)
-            .drag_value_speed(1.0)
-            .ui(ui)
-            .changed();
+            changed |= Self::grid_thickness_common(ui, key_property);
         });
 
         // frame_color
         grid_new_row!(ui, {
-            egui::Label::new("边框颜色:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("设置边框的颜色");
-            ui.color_edit_button_srgba_unmultiplied(&mut key_property.frame_color.0)
-                .changed()
-                .then(|| changed = true);
+            changed |= Self::grid_frame_color_common(ui, key_property);
         });
 
         // bar_speed
         grid_new_row!(ui, {
-            egui::Label::new("按键条速度:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("按键条前进的速度");
-            changed |= egui::Slider::new(&mut key_property.bar_speed, 1.0..=10_000.0)
-                .integer()
-                .logarithmic(true)
-                .drag_value_speed(1.0)
-                .ui(ui)
-                .changed();
+            changed |= Self::grid_bar_speed_common(ui, key_property);
         });
 
         // pressed_color
         grid_new_row!(ui, {
-            egui::Label::new("按键条颜色:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("设置按键条的颜色");
-            changed |= ui
-                .color_edit_button_srgba_unmultiplied(&mut key_property.pressed_color.0)
-                .changed();
+            changed |= Self::grid_pressed_color_common(ui, key_property);
         });
 
         // max_distance
         grid_new_row!(ui, {
-            egui::Label::new("最大距离:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text(concat!(
-                    "按键条能到达的最大距离。\n",
-                    "勾选以启用自定义最大距离，\n",
-                    "禁用时按键条在窗口边缘处消失。"
-                ));
-            ui.horizontal(|ui| {
-                changed |= egui::Checkbox::without_text(&mut key_property.max_distance.0)
-                    .ui(ui)
-                    .changed();
-                let slider = egui::Slider::new(&mut key_property.max_distance.1, 1.0..=10_000.0)
-                    .integer()
-                    .logarithmic(true)
-                    .drag_value_speed(1.0);
-                changed |= ui
-                    .add_enabled(key_property.max_distance.0, slider)
-                    .changed();
-            });
+            changed |= Self::grid_max_distance_common(ui, key_property);
         });
 
         // key_direction
         grid_new_row!(ui, {
-            egui::Label::new("按键方向:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("按键条的前进方向");
-            let map = |direction: KeyDirection| match direction {
-                KeyDirection::Up => "上",
-                KeyDirection::Down => "下",
-                KeyDirection::Left => "左",
-                KeyDirection::Right => "右",
-            };
-            egui::ComboBox::from_id_salt(ui.next_auto_id())
-                .selected_text(map(key_property.key_direction))
-                .width(0.0)
-                .show_ui(ui, |ui| {
-                    use KeyDirection::*;
-                    [(Up, "上"), (Down, "下"), (Left, "左"), (Right, "右")]
-                        .into_iter()
-                        .for_each(|(direction, name)| {
-                            changed |= ui
-                                .selectable_value(&mut key_property.key_direction, direction, name)
-                                .changed();
-                        });
-                });
+            changed |= Self::grid_key_direction_common(ui, key_property);
         });
 
         // fade_length
         grid_new_row!(ui, {
-            egui::Label::new("渐隐距离:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text(concat!("渐隐效果的距离。\n", "勾选以启用渐隐效果。"));
-            ui.horizontal(|ui| {
-                changed |= egui::Checkbox::without_text(&mut key_property.fade_length.0)
-                    .ui(ui)
-                    .changed();
-                let slider = egui::Slider::new(&mut key_property.fade_length.1, 1.0..=10_000.0)
-                    .integer()
-                    .logarithmic(true)
-                    .drag_value_speed(1.0);
-                changed |= ui.add_enabled(key_property.fade_length.0, slider).changed();
-            });
+            changed |= Self::grid_fade_length_common(ui, key_property);
         });
 
         // key_counter enable
         grid_new_row!(ui, {
-            egui::Label::new("启用计数器:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("勾选以启用计数器");
-            changed |= egui::Checkbox::without_text(&mut key_property.key_counter.0)
-                .ui(ui)
-                .changed();
+            changed |= Self::grid_key_counter_enable_common(ui, key_property);
         });
 
         // key_counter position
         grid_new_row!(ui, {
-            egui::Label::new("计数器位置:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("计数器中心点相对于按键边框中心点的位置");
-            fn layout(ui: &mut egui::Ui, enable: bool, add_contents: impl FnOnce(&mut egui::Ui)) {
-                ui.add_enabled_ui(enable, |ui| ui.vertical(add_contents));
-            }
-            layout(ui, key_property.key_counter.0, |ui| {
-                ui.horizontal(|ui| {
-                    egui::Label::new("x:").selectable(false).ui(ui);
-                    changed |= egui::Slider::new(
-                        &mut key_property.key_counter.1.position.x,
-                        -10_000.0..=10_000.0,
-                    )
-                    .integer()
-                    .logarithmic(true)
-                    .drag_value_speed(1.0)
-                    .ui(ui)
-                    .changed();
-                });
-                ui.horizontal(|ui| {
-                    egui::Label::new("y:").selectable(false).ui(ui);
-                    changed |= egui::Slider::new(
-                        &mut key_property.key_counter.1.position.y,
-                        -10_000.0..=10_000.0,
-                    )
-                    .integer()
-                    .logarithmic(true)
-                    .drag_value_speed(1.0)
-                    .ui(ui)
-                    .changed();
-                });
-            });
+            changed |= Self::grid_key_counter_position_common(
+                ui,
+                key_property,
+                Self::grid_key_counter_position_x_common,
+                Self::grid_key_counter_position_y_common,
+            );
         });
 
         // key_counter size
         grid_new_row!(ui, {
-            egui::Label::new("计数器大小:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("计数器字体的大小");
-            let slider =
-                egui::Slider::new(&mut key_property.key_counter.1.font_size, 1.0..=10_000.0)
-                    .integer()
-                    .logarithmic(true)
-                    .drag_value_speed(1.0);
-            changed |= ui.add_enabled(key_property.key_counter.0, slider).changed();
+            changed |= Self::grid_key_counter_size_common(ui, key_property);
         });
 
         // key_counter color
         grid_new_row!(ui, {
-            egui::Label::new("计数器颜色:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("计数器文本的颜色");
-            ui.add_enabled_ui(key_property.key_counter.0, |ui| {
-                changed |= ui
-                    .color_edit_button_srgba_unmultiplied(
-                        &mut key_property.key_counter.1.text_color.0,
-                    )
-                    .changed();
-            });
+            changed |= Self::grid_key_counter_color_common(ui, key_property);
         });
 
         changed
     }
 
     fn show_global_editor(&mut self, ui: &mut egui::Ui) -> Option<GlobalResponse> {
-        let key_property = &mut self.global_key_property;
+        // Safety: &mut self.global_key_property is guaranteed to be unique.
+        let key_property = unsafe { NonNull::from(&mut self.global_key_property).as_mut() };
+
+        // Safety: &mut self.global_key_property_check_states is guaranteed to be unique.
         let GlobalKeyPropertyCheckStates {
             global_operation,
             key_bind,
@@ -985,7 +1094,7 @@ impl KeyPropertySettingRow {
             key_counter_position_y,
             key_counter_size,
             key_counter_color,
-        } = &mut self.global_key_property_check_states;
+        } = unsafe { NonNull::from(&mut self.global_key_property_check_states).as_mut() };
 
         let mut response = None;
 
@@ -1126,364 +1235,148 @@ impl KeyPropertySettingRow {
                         .drag_value_speed(1.0)
                         .ui(ui);
                         let count = self.global_operation_cache.create_count;
-                        if count == 0 {
-                            response.on_hover_text("0个？");
-                        } else if count == 1 {
-                            response.on_hover_text("如同\"新建单项\"那样...");
-                        } else if count >= 100 && count < 1000 {
-                            response.on_hover_text("你要这么多干什么啦");
-                        } else if count == 1000 {
-                            response.on_hover_text("最多给你一次创建一千个，再多也没必要吧？");
+                        match count {
+                            0 => response.on_hover_text("0个？"),
+                            1 => response.on_hover_text("如同\"新建单项\"那样..."),
+                            100..1000 => response.on_hover_text("你要这么多干什么啦"),
+                            1000 => {
+                                response.on_hover_text("最多给你一次创建一千个，再多也没必要吧？")
+                            }
+                            _ => response,
                         }
                     });
                 });
             });
         });
 
-        // key_bind
-        grid_new_row!(ui, {
-            egui::Checkbox::without_text(key_bind)
+        fn common_checkbox(ui: &mut egui::Ui, checked: &mut bool) {
+            egui::Checkbox::without_text(checked)
                 .ui(ui)
                 .on_hover_text("勾选以影响该属性");
-            egui::Label::new("按键绑定:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text(concat!(
-                    "点击右边的选项，然后按下一个你想绑定的按键。\n",
-                    "当然，你也可以在展开的选项中选一个。"
-                ));
-            egui::ComboBox::from_id_salt(ui.next_auto_id())
-                .selected_text(key_property.key_bind.to_string())
-                .width(0.0)
-                .show_ui(ui, |ui| {
-                    self.key_bind_menu_opened = true;
-                    let key_to_scroll = self.key_binding.take().map(|key| {
-                        key_property.key_bind = key;
-                        key
-                    });
-                    Key::iter().for_each(|key| {
-                        let response =
-                            ui.selectable_value(&mut key_property.key_bind, key, key.to_string());
-                        key_to_scroll.map(|key_to_scroll| {
-                            if key_to_scroll == key {
-                                response.scroll_to_me(None);
-                            }
-                        });
-                    });
-                })
-                .response
-                .on_hover_text("点击我，然后按下一个按键！");
+        }
+
+        // key_bind
+        grid_new_row!(ui, {
+            common_checkbox(ui, key_bind);
+            self.grid_key_bind_common(ui, key_property);
         });
 
         // key_text & text_color
         grid_new_row!(ui, {
-            egui::Checkbox::without_text(key_text)
-                .ui(ui)
-                .on_hover_text("勾选以影响该属性");
-            egui::Label::new("按键文本:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text(concat!(
-                    "支持Unicode，不过不能换行。\n",
-                    "虽然能实现，但我想它并不需要换行。"
-                ));
-            ui.horizontal(|ui| {
-                ui.color_edit_button_srgba_unmultiplied(&mut key_property.text_color.0);
-                egui::TextEdit::singleline(&mut key_property.key_text).show(ui);
-            });
+            common_checkbox(ui, key_text);
+            Self::grid_key_text_and_text_color_common(ui, key_property);
         });
 
         // font_size
         grid_new_row!(ui, {
-            egui::Checkbox::without_text(font_size)
-                .ui(ui)
-                .on_hover_text("勾选以影响该属性");
-            egui::Label::new("字体大小:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("按键文本字体的大小");
-            egui::Slider::new(&mut key_property.font_size, 1.0..=10_000.0)
-                .integer()
-                .logarithmic(true)
-                .drag_value_speed(1.0)
-                .ui(ui);
+            common_checkbox(ui, font_size);
+            Self::grid_font_size_common(ui, key_property);
         });
 
         // position
         grid_new_row!(ui, {
-            egui::Checkbox::without_text(position)
-                .ui(ui)
-                .on_hover_text("勾选以影响该属性");
-            egui::Label::new("位置:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("按键边框左上角的坐标");
-            ui.vertical(|ui| {
-                ui.horizontal(|ui| {
-                    egui::Checkbox::without_text(position_x)
-                        .ui(ui)
-                        .on_hover_text("勾选以影响该属性");
-                    egui::Label::new("x:").selectable(false).ui(ui);
-                    egui::Slider::new(&mut key_property.position.x, -10_000.0..=10_000.0)
-                        .integer()
-                        .logarithmic(true)
-                        .drag_value_speed(1.0)
-                        .ui(ui);
-                });
-                ui.horizontal(|ui| {
-                    egui::Checkbox::without_text(position_y)
-                        .ui(ui)
-                        .on_hover_text("勾选以影响该属性");
-                    egui::Label::new("y:").selectable(false).ui(ui);
-                    egui::Slider::new(&mut key_property.position.y, -10_000.0..=10_000.0)
-                        .integer()
-                        .logarithmic(true)
-                        .drag_value_speed(1.0)
-                        .ui(ui);
-                });
-            });
+            common_checkbox(ui, position);
+            Self::grid_position_common(
+                ui,
+                key_property,
+                |ui, key_property| {
+                    common_checkbox(ui, position_x);
+                    Self::grid_position_x_common(ui, key_property)
+                },
+                |ui, key_property| {
+                    common_checkbox(ui, position_y);
+                    Self::grid_position_y_common(ui, key_property)
+                },
+            );
         });
 
         // width
         grid_new_row!(ui, {
-            egui::Checkbox::without_text(width)
-                .ui(ui)
-                .on_hover_text("勾选以影响该属性");
-            egui::Label::new("宽度:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("按键边框的宽度");
-            egui::Slider::new(&mut key_property.width, 3.0..=10_000.0)
-                .integer()
-                .logarithmic(true)
-                .drag_value_speed(1.0)
-                .ui(ui);
+            common_checkbox(ui, width);
+            Self::grid_width_common(ui, key_property);
         });
 
         // height
         grid_new_row!(ui, {
-            egui::Checkbox::without_text(height)
-                .ui(ui)
-                .on_hover_text("勾选以影响该属性");
-            egui::Label::new("高度:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("按键边框的高度");
-            egui::Slider::new(&mut key_property.height, 3.0..=10_000.0)
-                .integer()
-                .logarithmic(true)
-                .drag_value_speed(1.0)
-                .ui(ui);
+            common_checkbox(ui, height);
+            Self::grid_height_common(ui, key_property);
         });
 
         // thickness
         grid_new_row!(ui, {
-            egui::Checkbox::without_text(thickness)
-                .ui(ui)
-                .on_hover_text("勾选以影响该属性");
-            egui::Label::new("边框厚度:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("按键边框线的厚度");
-            egui::Slider::new(
-                &mut key_property.thickness,
-                1.0..=key_property.width.min(key_property.height) / 2.0 - 1.0,
-            )
-            .integer()
-            .logarithmic(true)
-            .drag_value_speed(1.0)
-            .ui(ui);
+            common_checkbox(ui, thickness);
+            Self::grid_thickness_common(ui, key_property);
         });
 
         // frame_color
         grid_new_row!(ui, {
-            egui::Checkbox::without_text(frame_color)
-                .ui(ui)
-                .on_hover_text("勾选以影响该属性");
-            egui::Label::new("边框颜色:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("设置边框的颜色");
-            ui.color_edit_button_srgba_unmultiplied(&mut key_property.frame_color.0);
+            common_checkbox(ui, frame_color);
+            Self::grid_frame_color_common(ui, key_property);
         });
 
         // bar_speed
         grid_new_row!(ui, {
-            egui::Checkbox::without_text(bar_speed)
-                .ui(ui)
-                .on_hover_text("勾选以影响该属性");
-            egui::Label::new("按键条速度:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("按键条前进的速度");
-            egui::Slider::new(&mut key_property.bar_speed, 1.0..=10_000.0)
-                .integer()
-                .logarithmic(true)
-                .drag_value_speed(1.0)
-                .ui(ui);
+            common_checkbox(ui, bar_speed);
+            Self::grid_bar_speed_common(ui, key_property);
         });
 
         // pressed_color
         grid_new_row!(ui, {
-            egui::Checkbox::without_text(pressed_color)
-                .ui(ui)
-                .on_hover_text("勾选以影响该属性");
-            egui::Label::new("按键条颜色:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("设置按键条的颜色");
-            ui.color_edit_button_srgba_unmultiplied(&mut key_property.pressed_color.0);
+            common_checkbox(ui, pressed_color);
+            Self::grid_pressed_color_common(ui, key_property);
         });
 
         // max_distance
         grid_new_row!(ui, {
-            egui::Checkbox::without_text(max_distance)
-                .ui(ui)
-                .on_hover_text("勾选以影响该属性");
-            egui::Label::new("最大距离:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text(concat!(
-                    "按键条能到达的最大距离。\n",
-                    "勾选以启用自定义最大距离，\n",
-                    "禁用时按键条在窗口边缘处消失。"
-                ));
-            ui.horizontal(|ui| {
-                egui::Checkbox::without_text(&mut key_property.max_distance.0).ui(ui);
-                egui::Slider::new(&mut key_property.max_distance.1, 1.0..=10_000.0)
-                    .integer()
-                    .logarithmic(true)
-                    .drag_value_speed(1.0)
-                    .ui(ui);
-            });
+            common_checkbox(ui, max_distance);
+            Self::grid_max_distance_common(ui, key_property);
         });
 
         // key_direction
         grid_new_row!(ui, {
-            egui::Checkbox::without_text(key_direction)
-                .ui(ui)
-                .on_hover_text("勾选以影响该属性");
-            egui::Label::new("按键方向:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("按键条的前进方向");
-            let map = |direction: KeyDirection| match direction {
-                KeyDirection::Up => "上",
-                KeyDirection::Down => "下",
-                KeyDirection::Left => "左",
-                KeyDirection::Right => "右",
-            };
-            egui::ComboBox::from_id_salt(ui.next_auto_id())
-                .selected_text(map(key_property.key_direction))
-                .width(0.0)
-                .show_ui(ui, |ui| {
-                    use KeyDirection::*;
-                    [(Up, "上"), (Down, "下"), (Left, "左"), (Right, "右")]
-                        .into_iter()
-                        .for_each(|(direction, name)| {
-                            ui.selectable_value(&mut key_property.key_direction, direction, name);
-                        });
-                });
+            common_checkbox(ui, key_direction);
+            Self::grid_key_direction_common(ui, key_property);
         });
 
         // fade_length
         grid_new_row!(ui, {
-            egui::Checkbox::without_text(fade_length)
-                .ui(ui)
-                .on_hover_text("勾选以影响该属性");
-            egui::Label::new("渐隐距离:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text(concat!("渐隐效果的距离。\n", "勾选以启用渐隐效果。"));
-            ui.horizontal(|ui| {
-                egui::Checkbox::without_text(&mut key_property.fade_length.0).ui(ui);
-                egui::Slider::new(&mut key_property.fade_length.1, 1.0..=10_000.0)
-                    .integer()
-                    .logarithmic(true)
-                    .drag_value_speed(1.0)
-                    .ui(ui);
-            });
+            common_checkbox(ui, fade_length);
+            Self::grid_fade_length_common(ui, key_property);
         });
 
         // key_counter enable
         grid_new_row!(ui, {
-            egui::Checkbox::without_text(key_counter)
-                .ui(ui)
-                .on_hover_text("勾选以影响该属性");
-            egui::Label::new("启用计数器:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("勾选以启用计数器");
-            egui::Checkbox::without_text(&mut key_property.key_counter.0).ui(ui);
+            common_checkbox(ui, key_counter);
+            Self::grid_key_counter_enable_common(ui, key_property);
         });
 
         // key_counter position
         grid_new_row!(ui, {
-            egui::Checkbox::without_text(key_counter_position)
-                .ui(ui)
-                .on_hover_text("勾选以影响该属性");
-            egui::Label::new("计数器位置:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("计数器中心点相对于按键边框中心点的位置");
-            ui.vertical(|ui| {
-                ui.horizontal(|ui| {
-                    egui::Checkbox::without_text(key_counter_position_x)
-                        .ui(ui)
-                        .on_hover_text("勾选以影响该属性");
-                    egui::Label::new("x:").selectable(false).ui(ui);
-                    egui::Slider::new(
-                        &mut key_property.key_counter.1.position.x,
-                        -10_000.0..=10_000.0,
-                    )
-                    .integer()
-                    .logarithmic(true)
-                    .drag_value_speed(1.0)
-                    .ui(ui);
-                });
-                ui.horizontal(|ui| {
-                    egui::Checkbox::without_text(key_counter_position_y)
-                        .ui(ui)
-                        .on_hover_text("勾选以影响该属性");
-                    egui::Label::new("y:").selectable(false).ui(ui);
-                    egui::Slider::new(
-                        &mut key_property.key_counter.1.position.y,
-                        -10_000.0..=10_000.0,
-                    )
-                    .integer()
-                    .logarithmic(true)
-                    .drag_value_speed(1.0)
-                    .ui(ui);
-                });
-            });
+            common_checkbox(ui, key_counter_position);
+            Self::grid_key_counter_position_common(
+                ui,
+                key_property,
+                |ui, key_property| {
+                    common_checkbox(ui, key_counter_position_x);
+                    Self::grid_key_counter_position_x_common(ui, key_property)
+                },
+                |ui, key_property| {
+                    common_checkbox(ui, key_counter_position_y);
+                    Self::grid_key_counter_position_y_common(ui, key_property)
+                },
+            );
         });
 
         // key_counter size
         grid_new_row!(ui, {
-            egui::Checkbox::without_text(key_counter_size)
-                .ui(ui)
-                .on_hover_text("勾选以影响该属性");
-            egui::Label::new("计数器大小:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("计数器字体的大小");
-            egui::Slider::new(&mut key_property.key_counter.1.font_size, 1.0..=10_000.0)
-                .integer()
-                .logarithmic(true)
-                .drag_value_speed(1.0)
-                .ui(ui);
+            common_checkbox(ui, key_counter_size);
+            Self::grid_key_counter_size_common(ui, key_property);
         });
 
         // key_counter color
         grid_new_row!(ui, {
-            egui::Checkbox::without_text(key_counter_color)
-                .ui(ui)
-                .on_hover_text("勾选以影响该属性");
-            egui::Label::new("计数器颜色:")
-                .selectable(false)
-                .ui(ui)
-                .on_hover_text("计数器文本的颜色");
-            ui.color_edit_button_srgba_unmultiplied(&mut key_property.key_counter.1.text_color.0);
+            common_checkbox(ui, key_counter_color);
+            Self::grid_key_counter_color_common(ui, key_property);
         });
 
         response
