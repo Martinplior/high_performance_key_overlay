@@ -48,7 +48,8 @@ fn common_eframe_native_options(vsync: bool) -> eframe::NativeOptions {
                 power_preference: PowerPreference::HighPerformance,
                 device_descriptor: Arc::new(move |adapter| {
                     let mut r = device_descriptor(adapter);
-                    r.required_limits = eframe::wgpu::Limits::downlevel_defaults();
+                    r.required_limits = eframe::wgpu::Limits::downlevel_defaults()
+                        .using_resolution(Default::default());
                     r
                 }),
             },

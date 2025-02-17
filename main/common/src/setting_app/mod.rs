@@ -39,6 +39,7 @@ impl SettingApp {
             viewport: ViewportBuilder::default()
                 .with_min_inner_size([min_edge, min_edge])
                 .with_inner_size([edge, edge])
+                .with_max_inner_size([8000.0; 2])
                 .with_icon(icon_data.clone()),
             ..crate::common_eframe_native_options(enable_vsync)
         };
