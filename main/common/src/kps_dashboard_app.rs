@@ -176,9 +176,9 @@ impl KpsSetting {
 
 struct Kps {
     key_instant_queue: VecDeque<Instant>,
-    interval: Duration,
     max_count: u32,
     pointer_value: f32,
+    pointer_velocity_ratio: f32,
     kps_frame_handle: TextureHandle,
     kps_pointer_handle: TextureHandle,
 }
@@ -211,11 +211,15 @@ impl Kps {
         let kps_pointer_handle =
             egui_ctx.load_texture("kps_pointer", kps_pointer_img, egui::TextureOptions::LINEAR);
 
+        let interval = Duration::from_secs_f32(setting.interval_ms.clamp(0.0, 5000.0) / 1_000.0);
+
+        let pointer_velocity_ratio = 1.0 / interval.as_secs_f32();
+
         Self {
             key_instant_queue: VecDeque::with_capacity(64),
-            interval: Duration::from_secs_f32(setting.interval_ms.clamp(0.0, 5000.0) / 1_000.0),
             max_count: setting.max_count.max(1),
             pointer_value: 0.0,
+            pointer_velocity_ratio,
             kps_frame_handle,
             kps_pointer_handle,
         }
@@ -251,7 +255,7 @@ impl Kps {
         painter.text(
             [edge / 2.0, 400.0].into(),
             egui::Align2::CENTER_CENTER,
-            format!("{}", self.count()),
+            format!("{}", self.pointer_value.round() as u32),
             font_id,
             text_color,
         );
@@ -293,16 +297,12 @@ impl Kps {
         self.key_instant_queue.len() as u32
     }
 
-    const MIN_ABS_DIFF: f32 = 0.01;
-
     fn update_pointer_value(&mut self, stable_dt: f32) {
-        let ratio = stable_dt / self.interval.as_secs_f32();
-        let mut diff = self.count() as f32 - self.pointer_value;
-        if diff.abs() < Self::MIN_ABS_DIFF {
-            diff = diff.signum() * Self::MIN_ABS_DIFF;
-        }
-        self.pointer_value += diff * ratio;
-        if diff.is_sign_positive() {
+        // PID algorithm: u_p = k_p * e(t)
+        let error = self.count() as f32 - self.pointer_value;
+        let velocity = self.pointer_velocity_ratio * error;
+        self.pointer_value += velocity * stable_dt;
+        if error.is_sign_positive() {
             self.pointer_value = self.pointer_value.min(self.count() as f32);
         } else {
             self.pointer_value = self.pointer_value.max(self.count() as f32);
