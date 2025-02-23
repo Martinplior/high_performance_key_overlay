@@ -113,7 +113,7 @@ impl eframe::App for App {
         self.kps.update_pointer_value(stable_dt);
 
         egui::CentralPanel::default()
-            .frame(egui::Frame::none())
+            .frame(egui::Frame::NONE)
             .show(ctx, |ui| self.kps.show(ui));
 
         self.kps.need_repaint().then(|| ctx.request_repaint());

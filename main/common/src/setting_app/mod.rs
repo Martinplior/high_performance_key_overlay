@@ -183,7 +183,7 @@ impl App {
             .with_inner_size(egui::vec2(window_setting.width, window_setting.height));
         ctx.show_viewport_immediate(new_viewport_id, viewport_builder, |ctx, _vc| {
             egui::CentralPanel::default()
-                .frame(egui::Frame::none())
+                .frame(egui::Frame::NONE)
                 .show(ctx, |ui| self.shared_data.key_overlay.show(ui));
         });
     }

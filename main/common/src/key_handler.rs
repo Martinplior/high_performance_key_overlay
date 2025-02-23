@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use eframe::egui_wgpu;
-use egui::{Color32, FontId, Rounding};
+use egui::{Color32, CornerRadius, FontId};
 
 use crate::{
     key::Key, key_bar::KeyBar, key_draw_cache::KeyDrawCache, key_message::KeyMessage,
@@ -244,13 +244,14 @@ impl<'a> KeyDrawingPipeline<'a> {
                 .shrink(key_property.thickness);
                 self.painter.rect(
                     rect,
-                    Rounding::ZERO,
+                    CornerRadius::ZERO,
                     if key_draw_cache.begin_hold_instant.is_some() {
                         key_draw_cache.pressed_color
                     } else {
                         Color32::TRANSPARENT
                     },
                     egui::Stroke::new(key_property.thickness, key_draw_cache.frame_color),
+                    egui::StrokeKind::Outside,
                 );
             });
     }

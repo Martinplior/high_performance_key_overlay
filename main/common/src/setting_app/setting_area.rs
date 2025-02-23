@@ -123,7 +123,7 @@ impl WindowSettingRow {
     fn show(&mut self, ui: &mut egui::Ui) {
         fn layout<R>(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut egui::Ui) -> R) -> R {
             let frame = egui::Frame::default()
-                .inner_margin(egui::Margin::same(5.0))
+                .inner_margin(egui::Margin::same(5))
                 .stroke(ui.visuals().noninteractive().bg_stroke);
             frame.show(ui, |ui| ui.horizontal(add_contents).inner).inner
         }
@@ -559,7 +559,7 @@ impl KeyPropertySettingRow {
 
             range.clone().for_each(|index| {
                 let frame = egui::Frame::default()
-                    .inner_margin(egui::Margin::same(5.0))
+                    .inner_margin(egui::Margin::same(5))
                     .stroke(ui.visuals().noninteractive().bg_stroke);
                 let inner_response = frame.show(ui, |ui| {
                     egui::Grid::new(ui.next_auto_id())
@@ -592,7 +592,7 @@ impl KeyPropertySettingRow {
         ui.separator();
 
         let frame = egui::Frame::default()
-            .inner_margin(egui::Margin::same(5.0))
+            .inner_margin(egui::Margin::same(5))
             .stroke(ui.visuals().noninteractive().bg_stroke);
         frame.show(ui, |ui| {
             let grid = egui::Grid::new(ui.next_auto_id()).striped(true);

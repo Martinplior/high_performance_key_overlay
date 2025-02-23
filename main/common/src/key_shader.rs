@@ -1,11 +1,11 @@
 use std::{num::NonZero, sync::Arc};
 
 use eframe::wgpu::{
-    self, include_wgsl,
-    util::{BufferInitDescriptor, DeviceExt},
-    BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType,
+    self, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType,
     BufferDescriptor, FragmentState, PipelineLayoutDescriptor, PrimitiveState,
     RenderPipelineDescriptor, ShaderStages, VertexAttribute, VertexBufferLayout, VertexState,
+    include_wgsl,
+    util::{BufferInitDescriptor, DeviceExt},
 };
 use egui::Color32;
 use parking_lot::Mutex;
@@ -50,7 +50,7 @@ struct Uniforms {
 }
 
 pub struct CustomCallbackInner {
-    device: Arc<wgpu::Device>,
+    device: wgpu::Device,
     vertex_buffer: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     bind_group_layout: wgpu::BindGroupLayout,

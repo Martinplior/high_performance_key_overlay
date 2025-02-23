@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use crate::{key_handler::KeyHandler, key_message::KeyMessage, setting::Setting};
-use egui::{Color32, FontData, FontDefinitions, FontFamily, Rounding};
+use egui::{Color32, CornerRadius, FontData, FontDefinitions, FontFamily};
 
 use crossbeam::channel::Receiver as MpscReceiver;
 
@@ -134,7 +134,11 @@ impl KeyOverlay {
 
     pub fn show(&self, ui: &mut egui::Ui) {
         let painter = ui.painter();
-        painter.rect_filled(painter.clip_rect(), Rounding::ZERO, self.background_color);
+        painter.rect_filled(
+            painter.clip_rect(),
+            CornerRadius::ZERO,
+            self.background_color,
+        );
         self.key_handler.draw_on(painter, self.instant_now);
     }
 

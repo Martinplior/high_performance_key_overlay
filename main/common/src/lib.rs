@@ -32,27 +32,28 @@ const CHANNEL_CAP: usize = u16::MAX as usize + 1;
 const SETTING_FILE_NAME: &str = "setting.json";
 
 fn common_eframe_native_options(vsync: bool) -> eframe::NativeOptions {
-    use eframe::egui_wgpu::{WgpuConfiguration, WgpuSetup};
-    use eframe::wgpu::{Backends, PowerPreference, PresentMode};
-    let WgpuSetup::CreateNew {
-        device_descriptor, ..
-    } = WgpuConfiguration::default().wgpu_setup
-    else {
+    use eframe::egui_wgpu::{WgpuConfiguration, WgpuSetup, WgpuSetupCreateNew};
+    use eframe::wgpu::{Backends, InstanceDescriptor, PowerPreference, PresentMode};
+    let WgpuSetup::CreateNew(default_setup) = WgpuConfiguration::default().wgpu_setup else {
         unreachable!();
     };
     eframe::NativeOptions {
         renderer: eframe::Renderer::Wgpu,
         wgpu_options: WgpuConfiguration {
-            wgpu_setup: WgpuSetup::CreateNew {
-                supported_backends: Backends::VULKAN | Backends::GL,
+            wgpu_setup: WgpuSetup::CreateNew(WgpuSetupCreateNew {
+                instance_descriptor: InstanceDescriptor {
+                    backends: Backends::VULKAN | Backends::GL,
+                    ..default_setup.instance_descriptor
+                },
                 power_preference: PowerPreference::HighPerformance,
                 device_descriptor: Arc::new(move |adapter| {
-                    let mut r = device_descriptor(adapter);
+                    let mut r = (default_setup.device_descriptor)(adapter);
                     r.required_limits = eframe::wgpu::Limits::downlevel_defaults()
                         .using_resolution(Default::default());
                     r
                 }),
-            },
+                ..default_setup
+            }),
             present_mode: if vsync {
                 PresentMode::AutoVsync
             } else {

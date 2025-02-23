@@ -90,7 +90,7 @@ impl eframe::App for App {
         let instant_now = std::time::Instant::now();
         self.key_overlay.update(instant_now);
         egui::CentralPanel::default()
-            .frame(egui::Frame::none())
+            .frame(egui::Frame::NONE)
             .show(ctx, |ui| self.key_overlay.show(ui));
         self.key_overlay
             .need_repaint()
