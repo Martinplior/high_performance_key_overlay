@@ -3,7 +3,6 @@ use std::mem::MaybeUninit;
 use std::thread::JoinHandle;
 use std::time::Instant;
 
-use windows::core::PCWSTR;
 use windows::Win32::Foundation::HWND;
 use windows::Win32::Foundation::LPARAM;
 use windows::Win32::Foundation::LRESULT;
@@ -13,12 +12,13 @@ use windows::Win32::UI::WindowsAndMessaging::CreateWindowExW;
 use windows::Win32::UI::WindowsAndMessaging::DefWindowProcW;
 use windows::Win32::UI::WindowsAndMessaging::DispatchMessageW;
 use windows::Win32::UI::WindowsAndMessaging::GetMessageW;
-use windows::Win32::UI::WindowsAndMessaging::PostMessageW;
-use windows::Win32::UI::WindowsAndMessaging::RegisterClassExW;
 use windows::Win32::UI::WindowsAndMessaging::HWND_MESSAGE;
 use windows::Win32::UI::WindowsAndMessaging::MSG;
+use windows::Win32::UI::WindowsAndMessaging::PostMessageW;
+use windows::Win32::UI::WindowsAndMessaging::RegisterClassExW;
 use windows::Win32::UI::WindowsAndMessaging::WM_CLOSE;
 use windows::Win32::UI::WindowsAndMessaging::WNDCLASSEXW;
+use windows::core::PCWSTR;
 
 use crossbeam::channel::Sender as MpscSender;
 
@@ -111,20 +111,21 @@ impl GlobalListener {
         register_raw_input_hook(&hwnd);
 
         loop {
-            let mut msg = MaybeUninit::uninit();
-            let r = unsafe { GetMessageW(msg.as_mut_ptr(), Some(hwnd), 0, 0) }.0;
+            let mut win_msg = MaybeUninit::<WinMsg>::uninit();
+            let r =
+                unsafe { GetMessageW(&raw mut (*win_msg.as_mut_ptr()).msg, Some(hwnd), 0, 0) }.0;
             let instant = Instant::now();
             if matches!(r, 0 | -1) {
                 break;
             }
-            let msg = WinMsg {
-                msg: unsafe { msg.assume_init() },
-                instant,
+            let win_msg = unsafe {
+                (*win_msg.as_mut_ptr()).instant = instant;
+                win_msg.assume_init()
             };
-            if msg_hook(&msg) {
+            if msg_hook(&win_msg) {
                 continue;
             }
-            unsafe { DispatchMessageW(&msg.msg) };
+            unsafe { DispatchMessageW(&win_msg.msg) };
         }
     }
 }
