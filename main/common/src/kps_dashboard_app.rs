@@ -252,11 +252,21 @@ impl Kps {
         );
 
         // counter text
+        let counter_value = (self.pointer_value * 10.0).round() as u32;
         painter.text(
-            [edge / 2.0, 400.0].into(),
+            [edge / 2.0, 380.0].into(),
             egui::Align2::CENTER_CENTER,
-            format!("{}", self.pointer_value.round() as u32),
-            font_id,
+            format!("{}.{}", counter_value / 10, counter_value % 10),
+            font_id.clone(),
+            text_color,
+        );
+
+        // bpm text
+        painter.text(
+            [edge / 2.0, 480.0].into(),
+            egui::Align2::CENTER_CENTER,
+            format!("{}BPM", (self.pointer_value * 15.0).round() as u32),
+            egui::FontId::monospace(70.0),
             text_color,
         );
 
@@ -265,17 +275,13 @@ impl Kps {
         let end_angle = 120.0;
         let range = end_angle - start_angle;
         let ratio = (self.pointer_value / self.max_count as f32).clamp(0.0, 1.0);
-
-        let pointer_angle = (start_angle + range * ratio).clamp(start_angle, end_angle);
-        let pointer_angle_rad = pointer_angle / 180.0 * std::f32::consts::PI;
-
+        let pointer_angle = (start_angle + range * ratio).to_radians();
         let mut pointer_mesh = epaint::Mesh::with_texture(self.kps_pointer_handle.id());
         pointer_mesh.add_rect_with_uv(ui.clip_rect(), uv, Color32::WHITE);
         pointer_mesh.rotate(
-            egui::emath::Rot2::from_angle(pointer_angle_rad),
+            egui::emath::Rot2::from_angle(pointer_angle),
             ui.clip_rect().center(),
         );
-
         painter.add(egui::Shape::mesh(pointer_mesh));
     }
 
