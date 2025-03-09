@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use egui::ViewportBuilder;
+use sak_rs::os::windows::input::GlobalListener;
 
-use crate::{global_listener::GlobalListener, key_overlay::KeyOverlay, msg_hook, setting::Setting};
+use crate::{key_overlay::KeyOverlay, msg_hook, setting::Setting};
 
 mod menu;
 mod setting_area;
@@ -89,10 +90,10 @@ impl App {
         let global_listener = GlobalListener::new(
             msg_hook::create_msg_hook(keys_sender, hook_shared),
             |&hwnd| {
-                use crate::win_utils::raw_input_device;
-                raw_input_device::register(
-                    raw_input_device::DeviceType::Keyboard,
-                    raw_input_device::OptionType::inputsink(hwnd),
+                use sak_rs::os::windows::input::raw_input::device;
+                device::register(
+                    device::DeviceType::Keyboard,
+                    device::OptionType::inputsink(hwnd),
                 );
             },
         );

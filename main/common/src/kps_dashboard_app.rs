@@ -4,11 +4,10 @@ use std::{
 };
 
 use egui::{Color32, TextureHandle, ViewportBuilder};
+use sak_rs::os::windows::input::GlobalListener;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    global_listener::GlobalListener, key::Key, key_message::KeyMessage, message_dialog, msg_hook,
-};
+use crate::{key::Key, key_message::KeyMessage, message_dialog, msg_hook};
 
 use crossbeam::channel::Receiver as MpscReceiver;
 

@@ -1,3 +1,4 @@
+use sak_rs::os::windows::input::{global_listener::WinMsg, raw_input};
 use windows::Win32::{
     Foundation::HWND,
     UI::{
@@ -8,7 +9,7 @@ use windows::Win32::{
 
 use crossbeam::channel::Sender as MpscSender;
 
-use crate::{global_listener::WinMsg, key::Key, key_message::KeyMessage, win_utils};
+use crate::{key::Key, key_message::KeyMessage};
 
 #[derive(Debug, Default)]
 pub struct HookShared {
@@ -17,15 +18,12 @@ pub struct HookShared {
 
 pub fn create_register_raw_input_hook() -> impl FnOnce(&HWND) {
     |&hwnd| {
-        use win_utils::raw_input_device;
-        raw_input_device::register(
-            raw_input_device::DeviceType::Keyboard,
-            raw_input_device::OptionType::inputsink_with_no_legacy(hwnd),
+        use sak_rs::os::windows::input::raw_input::device;
+        device::register(
+            device::DeviceType::Keyboard,
+            device::OptionType::inputsink_with_no_legacy(hwnd),
         );
-        raw_input_device::register(
-            raw_input_device::DeviceType::Mouse,
-            raw_input_device::OptionType::Remove,
-        );
+        device::register(device::DeviceType::Mouse, device::OptionType::Remove);
     }
 }
 
@@ -46,8 +44,8 @@ pub fn create_msg_hook(
 
 #[inline(always)]
 fn handle_raw_input(msg: &WinMsg, msg_sender: &MpscSender<KeyMessage>) {
-    let raw_input = win_utils::RawInput::from_msg(&msg.msg);
-    let win_utils::RawInput::Keyboard(keyboard) = raw_input else {
+    let raw_input = raw_input::RawInput::from_msg(&msg.msg);
+    let raw_input::RawInput::Keyboard(keyboard) = raw_input else {
         unreachable!("unexpeced raw input");
     };
     let keyboard = keyboard.data;

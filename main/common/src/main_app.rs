@@ -1,7 +1,7 @@
 use egui::ViewportBuilder;
+use sak_rs::os::windows::input::GlobalListener;
 
 use crate::{
-    global_listener::GlobalListener,
     key_overlay::KeyOverlay,
     msg_hook,
     setting::{Setting, WindowSetting},

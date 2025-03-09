@@ -6,7 +6,6 @@ pub mod kps_dashboard_app;
 pub mod main_app;
 pub mod setting_app;
 
-mod global_listener;
 mod key;
 mod key_bar;
 mod key_draw_cache;
@@ -20,7 +19,6 @@ mod msg_hook;
 mod setting;
 mod ucolor32;
 mod utils;
-mod win_utils;
 
 /// oh, blazing fast!
 #[global_allocator]
