@@ -151,6 +151,15 @@ pub mod v2 {
             }
         }
 
+        pub fn default_mouse() -> Self {
+            Self {
+                window_setting: Default::default(),
+                font_name: Self::DEFAULT_FONT_NAME.into(),
+                background_color: UColor32::TRANSPARENT,
+                key_properties: Self::property_mouse(),
+            }
+        }
+
         pub fn default_four_directions() -> Self {
             Self {
                 window_setting: Default::default(),
@@ -237,6 +246,23 @@ pub mod v2 {
                 .with_fade_length(fade_effect)
                 .with_key_counter(key_counter);
             vec![key_1, key_2, key_3]
+        }
+
+        fn property_mouse() -> Vec<KeyProperty> {
+            Self::property_zxc()
+                .into_iter()
+                .enumerate()
+                .map(|(i, key_property)| {
+                    let bind_text = [
+                        (Key::MouseLeft, "左"),
+                        (Key::MouseMiddle, "中"),
+                        (Key::MouseRight, "右"),
+                    ];
+                    key_property
+                        .with_key_bind(bind_text[i].0)
+                        .with_key_text(bind_text[i].1.into())
+                })
+                .collect()
         }
 
         fn property_four_directions() -> Vec<KeyProperty> {

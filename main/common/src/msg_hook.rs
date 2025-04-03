@@ -1,10 +1,7 @@
 use sak_rs::os::windows::input::{global_listener::WinMsg, raw_input};
 use windows::Win32::{
     Foundation::HWND,
-    UI::{
-        Input::KeyboardAndMouse::{VIRTUAL_KEY, VK_SHIFT},
-        WindowsAndMessaging::{RI_KEY_BREAK, RI_KEY_E0, WM_INPUT},
-    },
+    UI::{Input::KeyboardAndMouse::VK_SHIFT, WindowsAndMessaging::WM_INPUT},
 };
 
 use crossbeam::channel::Sender as MpscSender;
@@ -23,7 +20,10 @@ pub fn create_register_raw_input_hook() -> impl FnOnce(&HWND) {
             device::DeviceType::Keyboard,
             device::OptionType::inputsink_with_no_legacy(hwnd),
         );
-        device::register(device::DeviceType::Mouse, device::OptionType::Remove);
+        device::register(
+            device::DeviceType::Mouse,
+            device::OptionType::inputsink(hwnd),
+        );
     }
 }
 
@@ -45,25 +45,58 @@ pub fn create_msg_hook(
 #[inline(always)]
 fn handle_raw_input(msg: &WinMsg, msg_sender: &MpscSender<KeyMessage>) {
     let raw_input = raw_input::RawInput::from_msg(&msg.msg);
-    let raw_input::RawInput::Keyboard(keyboard) = raw_input else {
-        unreachable!("unexpeced raw input");
+    match raw_input {
+        raw_input::RawInput::Keyboard(keyboard) => {
+            let virtual_key = keyboard.virtual_key();
+            let is_extend = if virtual_key == VK_SHIFT {
+                keyboard.make_code() == 0x0036
+            } else {
+                keyboard.has_e0()
+            };
+            let key = Key::from_virtual_key(virtual_key, is_extend);
+            if key == Key::Unknown {
+                #[cfg(debug_assertions)]
+                println!("unkown: vk = {:?}, is_ext = {:?}", virtual_key, is_extend);
+                return;
+            }
+            let is_pressed = keyboard.key_is_down();
+            let key_message = KeyMessage::new(key, is_pressed, msg.instant);
+            #[cfg(debug_assertions)]
+            println!("{:?}", key_message);
+            msg_sender.send(key_message).unwrap();
+        }
+        raw_input::RawInput::Mouse(mouse) => {
+            let is_left_down = mouse.is_left_button_down();
+            let is_right_down = mouse.is_right_button_down();
+            let is_middle_down = mouse.is_middle_button_down();
+            let is_x1_down = mouse.is_ext1_button_down();
+            let is_x2_down = mouse.is_ext2_button_down();
+            let is_left_up = mouse.is_left_button_up();
+            let is_right_up = mouse.is_right_button_up();
+            let is_middle_up = mouse.is_middle_button_up();
+            let is_x1_up = mouse.is_ext1_button_up();
+            let is_x2_up = mouse.is_ext2_button_up();
+            [
+                (is_left_down, Key::MouseLeft, true),
+                (is_right_down, Key::MouseRight, true),
+                (is_middle_down, Key::MouseMiddle, true),
+                (is_x1_down, Key::MouseX1, true),
+                (is_x2_down, Key::MouseX2, true),
+                (is_left_up, Key::MouseLeft, false),
+                (is_right_up, Key::MouseRight, false),
+                (is_middle_up, Key::MouseMiddle, false),
+                (is_x1_up, Key::MouseX1, false),
+                (is_x2_up, Key::MouseX2, false),
+            ]
+            .iter()
+            .filter(|(cond, ..)| *cond)
+            .for_each(|(_, key, is_pressed)| {
+                let key_message = KeyMessage::new(*key, *is_pressed, msg.instant);
+                #[cfg(debug_assertions)]
+                println!("{:?}", key_message);
+                msg_sender.send(key_message).unwrap();
+            });
+        }
+        _ => unreachable!("unexpected raw input"),
     };
-    let keyboard = keyboard.data;
-    let virtual_key = VIRTUAL_KEY(keyboard.VKey);
-    let is_extend = if virtual_key == VK_SHIFT {
-        keyboard.MakeCode == 0x0036
-    } else {
-        (keyboard.Flags & RI_KEY_E0 as u16) != 0
-    };
-    let key = Key::from_virtual_key(virtual_key, is_extend);
-    if key == Key::Unknown {
-        #[cfg(debug_assertions)]
-        println!("vk = {:?}, is_ext = {:?}", virtual_key, is_extend);
-        return;
-    }
-    let is_pressed = (keyboard.Flags & RI_KEY_BREAK as u16) == 0;
-    let key_message = KeyMessage::new(key, is_pressed, msg.instant);
-    #[cfg(debug_assertions)]
-    println!("{:?}", key_message);
-    msg_sender.send(key_message).unwrap();
 }

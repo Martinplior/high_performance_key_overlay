@@ -223,6 +223,9 @@ impl File {
             ui.button("ZXC").clicked().then(|| {
                 self.response = Some(FileResponse::LoadDefaultSetting(Setting::default_zxc));
             });
+            ui.button("鼠标").clicked().then(|| {
+                self.response = Some(FileResponse::LoadDefaultSetting(Setting::default_mouse));
+            });
             ui.button("方向键").clicked().then(|| {
                 self.response = Some(FileResponse::LoadDefaultSetting(
                     Setting::default_four_directions,

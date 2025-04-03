@@ -14,11 +14,12 @@ mod key_message;
 mod key_overlay;
 mod key_property;
 mod key_shader;
-mod message_dialog;
 mod msg_hook;
 mod setting;
 mod ucolor32;
 mod utils;
+
+use sak_rs::message_dialog;
 
 /// oh, blazing fast!
 #[global_allocator]
@@ -74,23 +75,7 @@ fn key_overlay_setting_path() -> std::path::PathBuf {
     get_current_dir().join(SETTING_FILE_NAME)
 }
 
-pub fn graceful_run<R>(
-    f: impl FnOnce() -> R + std::panic::UnwindSafe,
-) -> Result<R, Box<dyn std::any::Any + Send>> {
-    std::panic::catch_unwind(f).map_err(|err| {
-        let message = if let Some(err) = err.downcast_ref::<String>() {
-            err.clone()
-        } else if let Some(err) = err.downcast_ref::<&str>() {
-            err.to_string()
-        } else {
-            format!("{:?}, type_id = {:?}", err, err.type_id())
-        };
-        #[cfg(debug_assertions)]
-        eprintln!("{}", &message);
-        message_dialog::error(message).show();
-        err
-    })
-}
+pub use sak_rs::graceful_run;
 
 #[cfg(test)]
 mod tests {

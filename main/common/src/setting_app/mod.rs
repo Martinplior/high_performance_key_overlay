@@ -95,6 +95,10 @@ impl App {
                     device::DeviceType::Keyboard,
                     device::OptionType::inputsink(hwnd),
                 );
+                device::register(
+                    device::DeviceType::Mouse,
+                    device::OptionType::inputsink(hwnd),
+                );
             },
         );
         let key_overlay = KeyOverlay::new(cc, &cc.egui_ctx, setting.clone(), keys_receiver);

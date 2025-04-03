@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 use windows::Win32::UI::Input::KeyboardAndMouse::{self, VIRTUAL_KEY};
 
+/// [see also](https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes)
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, Serialize, Deserialize)]
 pub enum Key {
     Escape,
@@ -125,6 +126,14 @@ pub enum Key {
     NumpadSeparator,
     NumpadDot,
     NumpadEnter,
+
+    // Mouse extend
+    MouseLeft,
+    MouseRight,
+    MouseMiddle,
+    MouseX1,
+    MouseX2,
+
     #[default]
     Unknown,
 }
@@ -211,6 +220,7 @@ impl Key {
             lut[VK_OEM_COMMA.0 as usize] = Comma;
             lut[VK_OEM_PERIOD.0 as usize] = Period;
             lut[VK_OEM_2.0 as usize] = ForwardSlash;
+
             lut[VK_RETURN.0 as usize] = Enter;
             lut[VK_RETURN.0 as usize + 0x100] = NumpadEnter;
             lut[VK_CONTROL.0 as usize] = LeftControl;
@@ -219,6 +229,7 @@ impl Key {
             lut[VK_SHIFT.0 as usize + 0x100] = RightShift;
             lut[VK_MENU.0 as usize] = LeftAlt;
             lut[VK_MENU.0 as usize + 0x100] = RightAlt;
+
             lut[VK_LCONTROL.0 as usize] = LeftControl;
             lut[VK_RCONTROL.0 as usize] = RightControl;
             lut[VK_LSHIFT.0 as usize] = LeftShift;
@@ -231,10 +242,16 @@ impl Key {
             lut[VK_APPS.0 as usize] = Apps;
             lut[VK_TAB.0 as usize] = Tab;
             lut[VK_CAPITAL.0 as usize] = CapsLock;
+
             lut[VK_UP.0 as usize] = Up;
+            lut[VK_UP.0 as usize + 0x100] = Up;
             lut[VK_DOWN.0 as usize] = Down;
+            lut[VK_DOWN.0 as usize + 0x100] = Down;
             lut[VK_LEFT.0 as usize] = Left;
+            lut[VK_LEFT.0 as usize + 0x100] = Left;
             lut[VK_RIGHT.0 as usize] = Right;
+            lut[VK_RIGHT.0 as usize + 0x100] = Right;
+
             lut[VK_NUMLOCK.0 as usize] = NumLock;
             lut[VK_NUMPAD1.0 as usize] = Numpad1;
             lut[VK_NUMPAD2.0 as usize] = Numpad2;
@@ -252,6 +269,13 @@ impl Key {
             lut[VK_DIVIDE.0 as usize] = NumpadDivide;
             lut[VK_SEPARATOR.0 as usize] = NumpadSeparator;
             lut[VK_DECIMAL.0 as usize] = NumpadDot;
+
+            lut[VK_LBUTTON.0 as usize] = MouseLeft;
+            lut[VK_RBUTTON.0 as usize] = MouseRight;
+            lut[VK_MBUTTON.0 as usize] = MouseMiddle;
+            lut[VK_XBUTTON1.0 as usize] = MouseX1;
+            lut[VK_XBUTTON2.0 as usize] = MouseX2;
+
             lut
         };
         let index = virtual_key.0 as usize + ((is_extend as usize) << 8);
@@ -367,6 +391,13 @@ impl Key {
             NumpadSeparator => VK_SEPARATOR,
             NumpadDot => VK_DECIMAL,
             NumpadEnter => VK_RETURN,
+
+            MouseLeft => VK_LBUTTON,
+            MouseRight => VK_RBUTTON,
+            MouseMiddle => VK_MBUTTON,
+            MouseX1 => VK_XBUTTON1,
+            MouseX2 => VK_XBUTTON2,
+
             Unknown => Default::default(),
         }
     }
