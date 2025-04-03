@@ -149,6 +149,7 @@ impl Key {
         use Key::*;
         use KeyboardAndMouse::*;
         const LUT: [Key; 0x200] = {
+            const EXT: usize = 0x100;
             let mut lut = [Unknown; 0x200];
             lut[VK_ESCAPE.0 as usize] = Escape;
             lut[VK_F1.0 as usize] = F1;
@@ -180,12 +181,20 @@ impl Key {
             lut[VK_OEM_MINUS.0 as usize] = Minus;
             lut[VK_OEM_PLUS.0 as usize] = Equal;
             lut[VK_BACK.0 as usize] = Backspace;
+
             lut[VK_INSERT.0 as usize] = Insert;
+            lut[VK_INSERT.0 as usize + EXT] = Insert;
             lut[VK_DELETE.0 as usize] = Delete;
+            lut[VK_DELETE.0 as usize + EXT] = Delete;
             lut[VK_HOME.0 as usize] = Home;
+            lut[VK_HOME.0 as usize + EXT] = Home;
             lut[VK_END.0 as usize] = End;
+            lut[VK_END.0 as usize + EXT] = End;
             lut[VK_PRIOR.0 as usize] = PageUp;
+            lut[VK_PRIOR.0 as usize + EXT] = PageUp;
             lut[VK_NEXT.0 as usize] = PageDown;
+            lut[VK_NEXT.0 as usize + EXT] = PageDown;
+
             lut[VK_A.0 as usize] = KeyA;
             lut[VK_B.0 as usize] = KeyB;
             lut[VK_C.0 as usize] = KeyC;
@@ -222,13 +231,13 @@ impl Key {
             lut[VK_OEM_2.0 as usize] = ForwardSlash;
 
             lut[VK_RETURN.0 as usize] = Enter;
-            lut[VK_RETURN.0 as usize + 0x100] = NumpadEnter;
+            lut[VK_RETURN.0 as usize + EXT] = NumpadEnter;
             lut[VK_CONTROL.0 as usize] = LeftControl;
-            lut[VK_CONTROL.0 as usize + 0x100] = RightControl;
+            lut[VK_CONTROL.0 as usize + EXT] = RightControl;
             lut[VK_SHIFT.0 as usize] = LeftShift;
-            lut[VK_SHIFT.0 as usize + 0x100] = RightShift;
+            lut[VK_SHIFT.0 as usize + EXT] = RightShift;
             lut[VK_MENU.0 as usize] = LeftAlt;
-            lut[VK_MENU.0 as usize + 0x100] = RightAlt;
+            lut[VK_MENU.0 as usize + EXT] = RightAlt;
 
             lut[VK_LCONTROL.0 as usize] = LeftControl;
             lut[VK_RCONTROL.0 as usize] = RightControl;
@@ -244,13 +253,13 @@ impl Key {
             lut[VK_CAPITAL.0 as usize] = CapsLock;
 
             lut[VK_UP.0 as usize] = Up;
-            lut[VK_UP.0 as usize + 0x100] = Up;
+            lut[VK_UP.0 as usize + EXT] = Up;
             lut[VK_DOWN.0 as usize] = Down;
-            lut[VK_DOWN.0 as usize + 0x100] = Down;
+            lut[VK_DOWN.0 as usize + EXT] = Down;
             lut[VK_LEFT.0 as usize] = Left;
-            lut[VK_LEFT.0 as usize + 0x100] = Left;
+            lut[VK_LEFT.0 as usize + EXT] = Left;
             lut[VK_RIGHT.0 as usize] = Right;
-            lut[VK_RIGHT.0 as usize + 0x100] = Right;
+            lut[VK_RIGHT.0 as usize + EXT] = Right;
 
             lut[VK_NUMLOCK.0 as usize] = NumLock;
             lut[VK_NUMPAD1.0 as usize] = Numpad1;
@@ -266,7 +275,10 @@ impl Key {
             lut[VK_ADD.0 as usize] = NumpadPlus;
             lut[VK_SUBTRACT.0 as usize] = NumpadMinus;
             lut[VK_MULTIPLY.0 as usize] = NumpadMultiply;
+
             lut[VK_DIVIDE.0 as usize] = NumpadDivide;
+            lut[VK_DIVIDE.0 as usize + EXT] = NumpadDivide;
+
             lut[VK_SEPARATOR.0 as usize] = NumpadSeparator;
             lut[VK_DECIMAL.0 as usize] = NumpadDot;
 

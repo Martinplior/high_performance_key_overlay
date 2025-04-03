@@ -358,7 +358,8 @@ impl KeyPropertySettingRow {
             self.key_binding = keys_receiver
                 .try_iter()
                 .find(|key_message| key_message.is_pressed)
-                .map(|key_message| key_message.key);
+                .map(|key_message| key_message.key)
+                .filter(|key| *key != Key::MouseLeft);
         } else {
             self.key_binding.take();
         };
@@ -631,7 +632,10 @@ impl KeyPropertySettingRow {
                 });
             })
             .response
-            .on_hover_text("点击我，然后按下一个按键！");
+            .on_hover_text(concat!(
+                "点击我，然后按下一个按键！\n",
+                "但是鼠标左键你得自己选"
+            ));
         changed
     }
 

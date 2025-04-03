@@ -53,10 +53,19 @@ fn handle_raw_input(msg: &WinMsg, msg_sender: &MpscSender<KeyMessage>) {
             } else {
                 keyboard.has_e0()
             };
-            let key = Key::from_virtual_key(virtual_key, is_extend);
+            let key = if keyboard.make_code() == 0x0037 && is_extend {
+                Key::PrintScreen
+            } else {
+                Key::from_virtual_key(virtual_key, is_extend)
+            };
             if key == Key::Unknown {
                 #[cfg(debug_assertions)]
-                println!("unkown: vk = {:?}, is_ext = {:?}", virtual_key, is_extend);
+                println!(
+                    "unkown: mc = {:#x?}, vk = {:?}, is_ext = {:?}",
+                    keyboard.make_code(),
+                    virtual_key,
+                    is_extend
+                );
                 return;
             }
             let is_pressed = keyboard.key_is_down();
