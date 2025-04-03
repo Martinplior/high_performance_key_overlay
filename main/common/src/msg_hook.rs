@@ -66,32 +66,22 @@ fn handle_raw_input(msg: &WinMsg, msg_sender: &MpscSender<KeyMessage>) {
             msg_sender.send(key_message).unwrap();
         }
         raw_input::RawInput::Mouse(mouse) => {
-            let is_left_down = mouse.is_left_button_down();
-            let is_right_down = mouse.is_right_button_down();
-            let is_middle_down = mouse.is_middle_button_down();
-            let is_x1_down = mouse.is_ext1_button_down();
-            let is_x2_down = mouse.is_ext2_button_down();
-            let is_left_up = mouse.is_left_button_up();
-            let is_right_up = mouse.is_right_button_up();
-            let is_middle_up = mouse.is_middle_button_up();
-            let is_x1_up = mouse.is_ext1_button_up();
-            let is_x2_up = mouse.is_ext2_button_up();
             [
-                (is_left_down, Key::MouseLeft, true),
-                (is_right_down, Key::MouseRight, true),
-                (is_middle_down, Key::MouseMiddle, true),
-                (is_x1_down, Key::MouseX1, true),
-                (is_x2_down, Key::MouseX2, true),
-                (is_left_up, Key::MouseLeft, false),
-                (is_right_up, Key::MouseRight, false),
-                (is_middle_up, Key::MouseMiddle, false),
-                (is_x1_up, Key::MouseX1, false),
-                (is_x2_up, Key::MouseX2, false),
+                (mouse.is_left_button_down(), Key::MouseLeft, true),
+                (mouse.is_right_button_down(), Key::MouseRight, true),
+                (mouse.is_middle_button_down(), Key::MouseMiddle, true),
+                (mouse.is_ext1_button_down(), Key::MouseX1, true),
+                (mouse.is_ext2_button_down(), Key::MouseX2, true),
+                (mouse.is_left_button_up(), Key::MouseLeft, false),
+                (mouse.is_right_button_up(), Key::MouseRight, false),
+                (mouse.is_middle_button_up(), Key::MouseMiddle, false),
+                (mouse.is_ext1_button_up(), Key::MouseX1, false),
+                (mouse.is_ext2_button_up(), Key::MouseX2, false),
             ]
-            .iter()
+            .into_iter()
             .filter(|(cond, ..)| *cond)
             .for_each(|(_, key, is_pressed)| {
-                let key_message = KeyMessage::new(*key, *is_pressed, msg.instant);
+                let key_message = KeyMessage::new(key, is_pressed, msg.instant);
                 #[cfg(debug_assertions)]
                 println!("{:?}", key_message);
                 msg_sender.send(key_message).unwrap();
