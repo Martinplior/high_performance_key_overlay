@@ -10,7 +10,7 @@ members = [
 [workspace.dependencies]
 common = { path = "./common" }
 
-sak_rs = { git = "https://github.com/Martinplior/sak_rs", tag = "v0.0.4", default-features = false, features = [
+sak_rs = { git = "https://github.com/Martinplior/sak_rs", tag = "v0.0.5", default-features = false, features = [
     "os_windows_input",
     "graceful_run"
 ] }
