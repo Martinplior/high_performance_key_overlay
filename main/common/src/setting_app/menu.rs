@@ -1,3 +1,5 @@
+use egui::Widget;
+
 use crate::{message_dialog, setting::Setting};
 
 use super::AppSharedData;
@@ -17,7 +19,7 @@ impl Menu {
         }
     }
 
-    pub fn show(&mut self, ui: &mut egui::Ui) {
+    pub fn show(&mut self, ui: &mut egui::Ui, app_shared_data: &AppSharedData) {
         egui::menu::bar(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.menu_button("文件", |ui| self.file.show(ui));
@@ -30,6 +32,8 @@ impl Menu {
                         self.request_discard = true;
                     }
                 });
+                egui::Label::new("当前配置:").selectable(false).ui(ui);
+                ui.label(app_shared_data.load_path.to_string_lossy());
             });
         });
     }
@@ -90,9 +94,10 @@ impl Menu {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum FileResponse {
     LoadFile,
+    SaveFileToSetting,
     SaveFile,
     SaveFileAs,
     LoadDefaultSetting(fn() -> Setting),
@@ -108,90 +113,86 @@ impl File {
     }
 
     fn update(&mut self, app_shared_data: &mut AppSharedData) {
-        let file_dialog = || {
-            rfd::FileDialog::new()
-                .set_directory(crate::get_current_dir())
-                .add_filter("", &["json"])
-        };
         self.response.take().map(|r| match r {
-            FileResponse::LoadFile => {
-                if app_shared_data.modified {
-                    let r = message_dialog::confirm("当前配置未保存，是否继续打开新文件？")
-                        .set_level(rfd::MessageLevel::Warning)
-                        .show();
-                    if r == rfd::MessageDialogResult::Cancel {
-                        return;
-                    }
-                }
-                file_dialog().pick_file().map(|path| {
-                    #[cfg(debug_assertions)]
-                    dbg!(&path);
-                    let _ = Setting::from_file(&path)
-                        .map(|setting| {
-                            app_shared_data.loaded_setting = setting.clone();
-                            app_shared_data.pending_setting = Some(setting);
-                            app_shared_data.load_path = path;
-                            app_shared_data.modified = false;
-                        })
-                        .map_err(|err| {
-                            message_dialog::warning(err).show();
-                        });
-                });
-            }
-            FileResponse::SaveFile => {
-                let path = &app_shared_data.load_path;
-                let _ = app_shared_data
-                    .current_setting
-                    .clone()
-                    .to_file(path)
-                    .map(|_| {
-                        app_shared_data.loaded_setting = app_shared_data.current_setting.clone();
-                        app_shared_data.modified = false;
-                        message_dialog::info("保存成功！").show();
-                    })
-                    .map_err(|err| {
-                        message_dialog::warning(err).show();
-                    });
-            }
-            FileResponse::SaveFileAs => {
-                file_dialog()
-                    .set_file_name("新建配置文件.json")
-                    .save_file()
-                    .map(|mut path| {
-                        let extention = path.extension().map_or_else(
-                            || "json".to_string(),
-                            |extention| {
-                                let extention = extention.to_str().unwrap_or_default().to_string();
-                                if extention == "json" {
-                                    extention
-                                } else {
-                                    extention + ".json"
-                                }
-                            },
-                        );
-                        path.set_extension(extention);
-                        #[cfg(debug_assertions)]
-                        dbg!(&path);
-                        let _ = app_shared_data
-                            .current_setting
-                            .clone()
-                            .to_file(&path)
-                            .map(|_| {
-                                app_shared_data.loaded_setting =
-                                    app_shared_data.current_setting.clone();
-                                app_shared_data.load_path = path;
-                                app_shared_data.modified = false;
-                                message_dialog::info("保存成功！").show();
-                            })
-                            .map_err(|err| {
-                                message_dialog::warning(err).show();
-                            });
-                    });
+            FileResponse::LoadFile => self.load_file(app_shared_data),
+            FileResponse::SaveFileToSetting | FileResponse::SaveFile | FileResponse::SaveFileAs => {
+                self.save_file(r, app_shared_data);
             }
             FileResponse::LoadDefaultSetting(setting) => {
                 app_shared_data.pending_setting = Some(setting());
             }
         });
+    }
+
+    fn file_dialog() -> rfd::FileDialog {
+        rfd::FileDialog::new()
+            .set_directory(crate::get_current_dir())
+            .add_filter("", &["json"])
+    }
+
+    fn load_file(&mut self, app_shared_data: &mut AppSharedData) {
+        if app_shared_data.modified {
+            let r = message_dialog::confirm("当前配置未保存，是否继续打开新文件？")
+                .set_level(rfd::MessageLevel::Warning)
+                .show();
+            if r == rfd::MessageDialogResult::Cancel {
+                return;
+            }
+        }
+        Self::file_dialog().pick_file().map(|path| {
+            #[cfg(debug_assertions)]
+            println!("{:?}", &path);
+            let _ = Setting::from_file(&path)
+                .map(|setting| {
+                    app_shared_data.loaded_setting = setting.clone();
+                    app_shared_data.pending_setting = Some(setting);
+                    app_shared_data.load_path = path;
+                    app_shared_data.modified = false;
+                })
+                .map_err(|err| message_dialog::warning(err).show());
+        });
+    }
+
+    fn save_file(&mut self, r: FileResponse, app_shared_data: &mut AppSharedData) {
+        let Some(path) = (match r {
+            FileResponse::SaveFileToSetting => Some(crate::get_current_dir().join("setting.json")),
+            FileResponse::SaveFile => Some(app_shared_data.load_path.clone()),
+            FileResponse::SaveFileAs => Self::file_dialog()
+                .set_file_name("新建配置文件.json")
+                .save_file()
+                .map(|mut path| {
+                    let extention = path.extension().map_or_else(
+                        || "json".to_string(),
+                        |extention| {
+                            let extention = extention.to_str().unwrap_or_default().to_string();
+                            if extention == "json" {
+                                extention
+                            } else {
+                                extention + ".json"
+                            }
+                        },
+                    );
+                    path.set_extension(extention);
+                    #[cfg(debug_assertions)]
+                    println!("{:?}", &path);
+                    path
+                }),
+            _ => unreachable!(),
+        }) else {
+            return;
+        };
+        let _ = app_shared_data
+            .current_setting
+            .clone()
+            .to_file(&path)
+            .map(|_| {
+                app_shared_data.loaded_setting = app_shared_data.current_setting.clone();
+                (r == FileResponse::SaveFileAs).then(|| app_shared_data.load_path = path.clone());
+                (r != FileResponse::SaveFileToSetting || path == app_shared_data.load_path)
+                    .then(|| app_shared_data.modified = false);
+                message_dialog::info("保存成功！").show();
+            })
+            .map_err(|err| message_dialog::warning(err).show());
     }
 
     fn show(&mut self, ui: &mut egui::Ui) {
@@ -200,6 +201,14 @@ impl File {
             .clicked()
             .then(|| {
                 self.response = Some(FileResponse::LoadFile);
+                ui.close_menu();
+            });
+
+        ui.add(egui::Button::new("保存到setting.json"))
+            .on_hover_text("将当前配置保存到setting.json")
+            .clicked()
+            .then(|| {
+                self.response = Some(FileResponse::SaveFileToSetting);
                 ui.close_menu();
             });
 

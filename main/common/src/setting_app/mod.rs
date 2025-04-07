@@ -166,7 +166,7 @@ impl App {
     fn show(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("menu")
             .resizable(false)
-            .show(ctx, |ui| self.menu.show(ui));
+            .show(ctx, |ui| self.menu.show(ui, &self.shared_data));
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::ScrollArea::vertical()
                 .auto_shrink(false)
