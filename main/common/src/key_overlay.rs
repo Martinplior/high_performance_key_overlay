@@ -29,9 +29,9 @@ impl KeyOverlay {
             ..
         } = &setting;
 
-        let background_color = background_color.clone().into();
+        let background_color = Color32::from(*background_color);
 
-        Self::init_fonts(egui_ctx, &font_name);
+        Self::init_fonts(egui_ctx, font_name);
 
         let instant_now = Instant::now();
         let key_handler = KeyHandler::new(cc, setting);
@@ -52,9 +52,9 @@ impl KeyOverlay {
             ..
         } = &setting;
 
-        let new_background_color = background_color.clone().into();
+        let new_background_color = Color32::from(*background_color);
 
-        reload_font.then(|| Self::init_fonts(&self.egui_ctx, &font_name));
+        reload_font.then(|| Self::init_fonts(&self.egui_ctx, font_name));
 
         self.background_color = new_background_color;
         self.key_handler.reload(&setting);
@@ -104,13 +104,13 @@ impl KeyOverlay {
                 font_name
             })
             .collect();
-        custom_font_names.extend(default_proportional.clone().into_iter());
+        custom_font_names.extend(default_proportional.clone());
         font_definitions
             .families
             .insert(font_family_name.clone(), custom_font_names);
 
         let mut font_names: Vec<_> = font_list[1..].iter().map(|x| x.to_string()).collect();
-        font_names.extend(default_proportional.into_iter());
+        font_names.extend(default_proportional);
         font_definitions
             .families
             .insert(egui::FontFamily::Proportional, font_names);

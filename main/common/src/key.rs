@@ -141,10 +141,6 @@ pub enum Key {
 impl Key {
     pub const LAST_KEY: Self = Self::Unknown;
 
-    pub fn to_string(&self) -> String {
-        format!("{:?}", self)
-    }
-
     pub fn from_virtual_key(virtual_key: VIRTUAL_KEY, is_extend: bool) -> Self {
         use Key::*;
         use KeyboardAndMouse::*;

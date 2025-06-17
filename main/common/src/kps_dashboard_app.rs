@@ -119,7 +119,7 @@ impl eframe::App for App {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KpsSetting {
     /// unit: ms
     interval_ms: f32,
@@ -146,11 +146,11 @@ impl KpsSetting {
         Ok(setting)
     }
 
-    fn to_file(self, path: impl AsRef<std::path::Path>) -> Result<(), String> {
+    fn to_file(&self, path: impl AsRef<std::path::Path>) -> Result<(), String> {
         let file = std::fs::File::create(path).map_err(|_| "无法写入文件")?;
         let writer = std::io::BufWriter::new(&file);
         serde_json::ser::to_writer_pretty(writer, &self)
-            .map_err(|err| format!("serde_json::ser::to_writer_pretty错误：{}", err))?;
+            .map_err(|err| format!("serde_json::ser::to_writer_pretty错误: {}", err))?;
         Ok(())
     }
 
@@ -159,7 +159,6 @@ impl KpsSetting {
         Self::from_file(&path).unwrap_or_else(|_| {
             let setting = Self::default();
             let _ = setting
-                .clone()
                 .to_file(path)
                 .map(|_| {
                     message_dialog::warning("读取配置文件失败，已生成默认配置").show();

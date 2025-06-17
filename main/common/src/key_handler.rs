@@ -94,7 +94,7 @@ impl KeyHandler {
         let new_key_draw_caches = new_key_properties
             .iter()
             .map(|key_property| {
-                KeyDrawCache::new(&window_setting, key_property.bar_speed, key_property)
+                KeyDrawCache::new(window_setting, key_property.bar_speed, key_property)
             })
             .collect();
 

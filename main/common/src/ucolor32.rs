@@ -116,10 +116,10 @@ impl From<egui::Color32> for UColor32 {
     }
 }
 
-impl Into<egui::Color32> for UColor32 {
+impl From<UColor32> for egui::Color32 {
     #[inline(always)]
-    fn into(self) -> egui::Color32 {
-        let Self([r, g, b, a]) = self;
+    fn from(value: UColor32) -> Self {
+        let UColor32([r, g, b, a]) = value;
         egui::Color32::from_rgba_unmultiplied(r, g, b, a)
     }
 }
@@ -131,17 +131,17 @@ impl From<[u8; 4]> for UColor32 {
     }
 }
 
-impl Into<[u8; 4]> for UColor32 {
+impl From<UColor32> for [u8; 4] {
     #[inline(always)]
-    fn into(self) -> [u8; 4] {
-        self.0
+    fn from(value: UColor32) -> Self {
+        value.0
     }
 }
 
-impl Into<epaint::Rgba> for UColor32 {
+impl From<UColor32> for epaint::Rgba {
     #[inline(always)]
-    fn into(self) -> epaint::Rgba {
-        let Self([r, g, b, a]) = self;
+    fn from(value: UColor32) -> Self {
+        let UColor32([r, g, b, a]) = value;
         epaint::Rgba::from_srgba_unmultiplied(r, g, b, a)
     }
 }
@@ -154,10 +154,10 @@ impl From<(u8, u8, u8, u8)> for UColor32 {
     }
 }
 
-impl Into<(u8, u8, u8, u8)> for UColor32 {
+impl From<UColor32> for (u8, u8, u8, u8) {
     #[inline(always)]
-    fn into(self) -> (u8, u8, u8, u8) {
-        let Self([r, g, b, a]) = self;
+    fn from(value: UColor32) -> Self {
+        let UColor32([r, g, b, a]) = value;
         (r, g, b, a)
     }
 }

@@ -100,23 +100,22 @@ pub mod v2 {
                     .map_err(|_| "无法读取文件")?;
                 let setting_v1: v1::Setting =
                     serde_json::de::from_reader(reader).map_err(|_| "格式错误")?;
-                let setting = Self {
+                Self {
                     window_setting: setting_v1.window_setting,
                     font_name: setting_v1.font_name,
                     background_color: UColor32::TRANSPARENT,
                     key_properties: setting_v1.key_properties,
-                };
-                setting
+                }
             };
 
             Ok(setting)
         }
 
-        pub fn to_file(self, path: impl AsRef<std::path::Path>) -> Result<(), String> {
+        pub fn to_file(&self, path: impl AsRef<std::path::Path>) -> Result<(), String> {
             let file = std::fs::File::create(path).map_err(|_| "无法写入文件")?;
             let writer = std::io::BufWriter::new(&file);
             serde_json::ser::to_writer_pretty(writer, &self)
-                .map_err(|err| format!("serde_json::ser::to_writer_pretty错误：{}", err))?;
+                .map_err(|err| format!("serde_json::ser::to_writer_pretty错误: {}", err))?;
             Ok(())
         }
 
@@ -125,7 +124,6 @@ pub mod v2 {
             Self::from_file(&path).unwrap_or_else(|_| {
                 let setting = Self::default_zxc();
                 let _ = setting
-                    .clone()
                     .to_file(path)
                     .map(|_| {
                         message_dialog::warning("读取配置文件失败，已生成默认配置").show();

@@ -66,7 +66,7 @@ fn common_eframe_native_options(vsync: bool) -> eframe::NativeOptions {
 
 fn get_current_dir() -> std::path::PathBuf {
     std::env::current_dir().unwrap_or_else(|err| {
-        message_dialog::error(format!("未知错误：{}", err.to_string())).show();
+        message_dialog::error(format!("未知错误: {}", err)).show();
         panic!()
     })
 }
@@ -127,7 +127,7 @@ mod tests {
         let sys_fonts = font_kit::source::SystemSource::new();
         let font_family = "等距更纱黑体 SC";
         let Ok(family_handle) = sys_fonts.select_family_by_name(font_family) else {
-            panic!("未找到字体：{}", font_family);
+            panic!("未找到字体: {}", font_family);
         };
         println!("family count: {}", family_handle.fonts().len());
         family_handle.fonts().iter().for_each(|handle| {

@@ -183,7 +183,6 @@ impl File {
         };
         let _ = app_shared_data
             .current_setting
-            .clone()
             .to_file(&path)
             .map(|_| {
                 app_shared_data.loaded_setting = app_shared_data.current_setting.clone();

@@ -406,7 +406,7 @@ impl KeyPropertySettingRow {
             .check_states
             .iter()
             .zip(self.key_properties.drain(..))
-            .filter_map(|(c, key_property)| (!c).then(|| key_property))
+            .filter_map(|(c, key_property)| (!c).then_some(key_property))
             .collect();
         self.key_properties = new_key_properties;
         self.request_reload = true;
@@ -471,13 +471,13 @@ impl KeyPropertySettingRow {
     fn handle_global_response_swap(&mut self) {
         let count = self.check_states.iter().filter(|&c| *c).count();
         if count == 2 {
-            let indexes: Box<_> = self
+            let mut index_iter = self
                 .check_states
                 .iter()
                 .enumerate()
-                .filter_map(|(index, &c)| c.then(|| index))
-                .collect();
-            let (index_l, index_r) = (*indexes.get(0).unwrap(), *indexes.get(1).unwrap());
+                .filter_map(|(index, &c)| c.then_some(index));
+            let index_l = index_iter.next().unwrap();
+            let index_r = index_iter.next().unwrap();
 
             // Safety: &mut self; not overlapped
             let key_property_l =
@@ -617,10 +617,9 @@ impl KeyPropertySettingRow {
             .width(0.0)
             .show_ui(ui, |ui| {
                 self.key_bind_menu_opened = true;
-                let key_to_scroll = self.key_binding.take().map(|key| {
-                    key_property.key_bind = key;
+                let key_to_scroll = self.key_binding.take().inspect(|key| {
+                    key_property.key_bind = *key;
                     changed = true;
-                    key
                 });
                 Key::iter().for_each(|key| {
                     let response =
