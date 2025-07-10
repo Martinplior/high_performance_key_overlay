@@ -6,8 +6,10 @@ use std::{
 use egui::Color32;
 
 use crate::{
-    key_bar::KeyBar,
-    key_property::{KeyDirection, KeyProperty},
+    key_overlay_core::{
+        key_bar::KeyBar,
+        key_property::{KeyDirection, KeyProperty},
+    },
     setting::WindowSetting,
 };
 
@@ -25,23 +27,22 @@ pub struct KeyDrawCache {
 
 impl KeyDrawCache {
     pub fn new(window_setting: &WindowSetting, bar_speed: f32, key_property: &KeyProperty) -> Self {
-        let max_bar_duration = Duration::from_secs_f32(
-            if let (true, max_distantce) = key_property.max_distance {
-                max_distantce
-            } else {
-                match key_property.key_direction {
-                    KeyDirection::Up => key_property.position.y,
-                    KeyDirection::Down => {
-                        window_setting.height - key_property.position.y - key_property.height
-                    }
-                    KeyDirection::Left => key_property.position.x,
-                    KeyDirection::Right => {
-                        window_setting.width - key_property.position.x - key_property.width
-                    }
+        let max_distance = if let (true, max_distantce) = key_property.max_distance {
+            max_distantce
+        } else {
+            match key_property.key_direction {
+                KeyDirection::Up => key_property.position.y,
+                KeyDirection::Down => {
+                    window_setting.height - key_property.position.y - key_property.height
                 }
-                .max(0.0)
-            } / bar_speed,
-        );
+                KeyDirection::Left => key_property.position.x,
+                KeyDirection::Right => {
+                    window_setting.width - key_property.position.x - key_property.width
+                }
+            }
+            .max(0.0)
+        };
+        let max_bar_duration = Duration::from_secs_f32(max_distance / bar_speed);
         Self {
             bar_queue: VecDeque::with_capacity(64),
             key_text_color: key_property.text_color.into(),

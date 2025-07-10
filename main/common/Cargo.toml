@@ -9,11 +9,13 @@ sak_rs = { workspace = true }
 eframe = { workspace = true }
 egui = { workspace = true }
 epaint = { workspace = true }
+wgpu = { workspace = true }
+
 serde = { workspace = true }
 serde_json = { workspace = true }
 font-kit = { workspace = true }
 owned_ttf_parser = { workspace = true }
-crossbeam = { workspace = true }
+crossbeam-channel = { workspace = true }
 parking_lot = { workspace = true }
 bytemuck = { workspace = true }
 windows = { workspace = true }
@@ -24,3 +26,4 @@ mimalloc = { workspace = true }
 [lints.clippy]
 new_without_default = "allow"
 option_map_unit_fn = "allow"
+unwrap_used = "warn"

@@ -7,18 +7,13 @@ pub mod main_app;
 pub mod setting_app;
 
 mod key;
-mod key_bar;
-mod key_draw_cache;
-mod key_handler;
-mod key_message;
-mod key_overlay;
-mod key_property;
-mod key_shader;
+mod key_overlay_core;
 mod msg_hook;
 mod setting;
 mod ucolor32;
 mod utils;
 
+use eframe::wgpu::{MemoryHints, Trace, wgt::DeviceDescriptor};
 use sak_rs::message_dialog;
 
 /// oh, blazing fast!
@@ -33,25 +28,28 @@ const SETTING_FILE_NAME: &str = "setting.json";
 fn common_eframe_native_options(vsync: bool) -> eframe::NativeOptions {
     use eframe::egui_wgpu::{WgpuConfiguration, WgpuSetup, WgpuSetupCreateNew};
     use eframe::wgpu::{Backends, InstanceDescriptor, PowerPreference, PresentMode};
-    let WgpuSetup::CreateNew(default_setup) = WgpuConfiguration::default().wgpu_setup else {
-        unreachable!();
-    };
     eframe::NativeOptions {
         renderer: eframe::Renderer::Wgpu,
         wgpu_options: WgpuConfiguration {
             wgpu_setup: WgpuSetup::CreateNew(WgpuSetupCreateNew {
                 instance_descriptor: InstanceDescriptor {
                     backends: Backends::VULKAN | Backends::GL,
-                    ..default_setup.instance_descriptor
+                    ..Default::default()
                 },
                 power_preference: PowerPreference::HighPerformance,
-                device_descriptor: Arc::new(move |adapter| {
-                    let mut r = (default_setup.device_descriptor)(adapter);
-                    r.required_limits = eframe::wgpu::Limits::downlevel_defaults()
-                        .using_resolution(Default::default());
+                device_descriptor: Arc::new(|adapter| {
+                    let r = DeviceDescriptor {
+                        label: None,
+                        required_features: adapter.features(),
+                        required_limits: adapter.limits(),
+                        memory_hints: MemoryHints::Performance,
+                        trace: Trace::Off,
+                    };
+                    #[cfg(debug_assertions)]
+                    println!("{r:?}");
                     r
                 }),
-                ..default_setup
+                ..Default::default()
             }),
             present_mode: if vsync {
                 PresentMode::AutoVsync
@@ -66,7 +64,7 @@ fn common_eframe_native_options(vsync: bool) -> eframe::NativeOptions {
 
 fn get_current_dir() -> std::path::PathBuf {
     std::env::current_dir().unwrap_or_else(|err| {
-        message_dialog::error(format!("未知错误: {}", err)).show();
+        message_dialog::error(format!("未知错误: {err}")).show();
         panic!()
     })
 }

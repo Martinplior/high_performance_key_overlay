@@ -4,9 +4,9 @@ use windows::Win32::{
     UI::{Input::KeyboardAndMouse::VK_SHIFT, WindowsAndMessaging::WM_INPUT},
 };
 
-use crossbeam::channel::Sender as MpscSender;
+use crossbeam_channel::Sender as MpscSender;
 
-use crate::{key::Key, key_message::KeyMessage};
+use crate::{key::Key, key_overlay_core::key_message::KeyMessage};
 
 #[derive(Debug, Default)]
 pub struct HookShared {
@@ -71,8 +71,8 @@ fn handle_raw_input(msg: &WinMsg, msg_sender: &MpscSender<KeyMessage>) {
             let is_pressed = keyboard.key_is_down();
             let key_message = KeyMessage::new(key, is_pressed, msg.instant);
             #[cfg(debug_assertions)]
-            println!("{:?}", key_message);
-            msg_sender.send(key_message).unwrap();
+            println!("{key_message:?}");
+            msg_sender.send(key_message).expect("unreachable");
         }
         raw_input::RawInput::Mouse(mouse) => {
             [
@@ -92,8 +92,8 @@ fn handle_raw_input(msg: &WinMsg, msg_sender: &MpscSender<KeyMessage>) {
             .for_each(|(_, key, is_pressed)| {
                 let key_message = KeyMessage::new(key, is_pressed, msg.instant);
                 #[cfg(debug_assertions)]
-                println!("{:?}", key_message);
-                msg_sender.send(key_message).unwrap();
+                println!("{key_message:?}");
+                msg_sender.send(key_message).expect("unreachable");
             });
         }
         _ => unreachable!("unexpected raw input"),

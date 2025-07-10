@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use serde::{Deserialize, Serialize};
 use windows::Win32::UI::Input::KeyboardAndMouse::{self, VIRTUAL_KEY};
 
@@ -290,6 +288,7 @@ impl Key {
         unsafe { *LUT.get_unchecked(index) }
     }
 
+    #[allow(dead_code)]
     pub fn to_virtual_key(self) -> VIRTUAL_KEY {
         use Key::*;
         use KeyboardAndMouse::*;
@@ -417,7 +416,7 @@ impl Key {
 
 impl std::fmt::Display for Key {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 

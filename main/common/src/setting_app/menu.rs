@@ -20,7 +20,7 @@ impl Menu {
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, app_shared_data: &AppSharedData) {
-        egui::menu::bar(ui, |ui| {
+        egui::MenuBar::new().ui(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.menu_button("文件", |ui| self.file.show(ui));
                 let button = egui::Button::new("放弃所有修改");
@@ -200,7 +200,6 @@ impl File {
             .clicked()
             .then(|| {
                 self.response = Some(FileResponse::LoadFile);
-                ui.close_menu();
             });
 
         ui.add(egui::Button::new("保存到setting.json"))
@@ -208,7 +207,6 @@ impl File {
             .clicked()
             .then(|| {
                 self.response = Some(FileResponse::SaveFileToSetting);
-                ui.close_menu();
             });
 
         ui.add(egui::Button::new("保存").shortcut_text("Ctrl + S"))
@@ -216,7 +214,6 @@ impl File {
             .clicked()
             .then(|| {
                 self.response = Some(FileResponse::SaveFile);
-                ui.close_menu();
             });
 
         ui.add(egui::Button::new("另存为...").shortcut_text("Ctrl + Shift + S"))
@@ -224,7 +221,6 @@ impl File {
             .clicked()
             .then(|| {
                 self.response = Some(FileResponse::SaveFileAs);
-                ui.close_menu();
             });
 
         ui.menu_button("加载预设配置", |ui| {

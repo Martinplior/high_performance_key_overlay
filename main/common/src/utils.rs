@@ -24,7 +24,7 @@ pub fn egui_scroll_area_show_columns<R>(
 
         let rect = egui::Rect::from_x_y_ranges(x_min..=x_max, ui.max_rect().y_range());
 
-        ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |viewport_ui| {
+        ui.scope_builder(egui::UiBuilder::new().max_rect(rect), |viewport_ui| {
             viewport_ui.skip_ahead_auto_ids(min_column); // Make sure we get consistent IDs.
             add_contents(viewport_ui, min_column..max_column)
         })

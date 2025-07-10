@@ -3,5 +3,5 @@
 use common::setting_app::SettingApp;
 
 fn main() {
-    let _ = common::graceful_run(|| SettingApp::new().run());
+    let _ = common::graceful_run(SettingApp::run);
 }

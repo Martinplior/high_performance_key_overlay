@@ -1,12 +1,14 @@
 use std::ptr::NonNull;
 
-use egui::Widget;
+use egui::{PopupCloseBehavior, Widget};
 
 use crate::{
     key::Key,
-    key_message::KeyMessage,
-    key_overlay::KeyOverlay,
-    key_property::{KeyDirection, KeyProperty},
+    key_overlay_core::{
+        key_message::KeyMessage,
+        key_property::{KeyDirection, KeyProperty},
+    },
+    main_app::key_overlay::KeyOverlay,
     message_dialog,
     setting::{Setting, WindowSetting},
     ucolor32::UColor32,
@@ -14,7 +16,7 @@ use crate::{
 
 use super::AppSharedData;
 
-use crossbeam::channel::Receiver as MpscReceiver;
+use crossbeam_channel::Receiver as MpscReceiver;
 
 macro_rules! grid_new_row {
     ($ui:ident, $b: block) => {{
@@ -416,7 +418,7 @@ impl KeyPropertySettingRow {
         let count = self.check_states.iter().filter(|&c| *c).count();
         if count == 1 {
             let index = self.check_states.iter().take_while(|&c| !*c).count();
-            let key_property = self.key_properties.get(index).unwrap();
+            let key_property = self.key_properties.get(index).expect("unreachable");
             macro_rules! read_one {
                 ($($($token: tt).*),*) => {{
                     $(self.global_key_property.$($token).* = key_property.$($token).*.clone());*
@@ -432,7 +434,7 @@ impl KeyPropertySettingRow {
         let count = self.check_states.iter().filter(|&c| *c).count();
         if count == 1 {
             let index = self.check_states.iter().take_while(|&c| !*c).count();
-            let key_property = self.key_properties.get_mut(index).unwrap();
+            let key_property = self.key_properties.get_mut(index).expect("unreachable");
             macro_rules! write_one {
                 ($($($token: tt).*),*) => {{
                     $(key_property.$($token).* = self.global_key_property.$($token).*.clone());*
@@ -476,14 +478,16 @@ impl KeyPropertySettingRow {
                 .iter()
                 .enumerate()
                 .filter_map(|(index, &c)| c.then_some(index));
-            let index_l = index_iter.next().unwrap();
-            let index_r = index_iter.next().unwrap();
+            let index_l = index_iter.next().expect("unreachable");
+            let index_r = index_iter.next().expect("unreachable");
 
             // Safety: &mut self; not overlapped
-            let key_property_l =
-                unsafe { NonNull::from(self.key_properties.get_mut(index_l).unwrap()).as_mut() };
-            let key_property_r =
-                unsafe { NonNull::from(self.key_properties.get_mut(index_r).unwrap()).as_mut() };
+            let key_property_l = unsafe {
+                NonNull::from(self.key_properties.get_mut(index_l).expect("unreachable")).as_mut()
+            };
+            let key_property_r = unsafe {
+                NonNull::from(self.key_properties.get_mut(index_r).expect("unreachable")).as_mut()
+            };
 
             macro_rules! swap {
                 ($($($token: tt).*),*) => {{
@@ -504,7 +508,7 @@ impl KeyPropertySettingRow {
         let count = self.check_states.iter().filter(|&c| *c).count();
         if count == 1 {
             let index = self.check_states.iter().take_while(|&c| !*c).count();
-            let key_property = self.key_properties.get_mut(index).unwrap();
+            let key_property = self.key_properties.get_mut(index).expect("unreachable");
             let new_key_property = key_property.clone();
             let move_index = self.global_operation_cache.its_index + IS_RIGHT as usize;
             self.key_properties.insert(move_index, new_key_property);
@@ -615,6 +619,7 @@ impl KeyPropertySettingRow {
         egui::ComboBox::from_id_salt(ui.next_auto_id())
             .selected_text(key_property.key_bind.to_string())
             .width(0.0)
+            .close_behavior(PopupCloseBehavior::IgnoreClicks)
             .show_ui(ui, |ui| {
                 self.key_bind_menu_opened = true;
                 let key_to_scroll = self.key_binding.take().inspect(|key| {
@@ -943,14 +948,15 @@ impl KeyPropertySettingRow {
 
     fn show_column(&mut self, index: usize, ui: &mut egui::Ui) -> bool {
         // Safety: &mut self.key_properties[index] is guaranteed to be unique.
-        let key_property =
-            unsafe { NonNull::from(self.key_properties.get_mut(index).unwrap()).as_mut() };
+        let key_property = unsafe {
+            NonNull::from(self.key_properties.get_mut(index).expect("unreachable")).as_mut()
+        };
 
         let mut changed = false;
 
         // check_state
         grid_new_row!(ui, {
-            let check_state = self.check_states.get_mut(index).unwrap();
+            let check_state = self.check_states.get_mut(index).expect("unreachable");
             let text = "勾选或不勾选，这值得思考";
             egui::Label::new("选择:")
                 .selectable(false)

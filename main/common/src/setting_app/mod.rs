@@ -3,30 +3,23 @@ use std::sync::Arc;
 use egui::ViewportBuilder;
 use sak_rs::os::windows::input::GlobalListener;
 
-use crate::{key_overlay::KeyOverlay, msg_hook, setting::Setting};
+use crate::{main_app::key_overlay::KeyOverlay, msg_hook, setting::Setting};
 
 mod menu;
 mod setting_area;
 
-pub struct SettingApp {
-    setting: Option<Setting>,
-}
+pub struct SettingApp;
 
 impl SettingApp {
-    pub fn new() -> Self {
-        Self {
-            setting: Some(Setting::load_from_local_setting()),
-        }
-    }
+    pub fn run() {
+        let setting = Setting::load_from_local_setting();
 
-    pub fn run(mut self) {
-        let setting = self.setting.take().unwrap();
         let enable_vsync = setting.window_setting.enable_vsync;
         let min_edge = App::WINDOW_MIN_EDGE;
         let edge = min_edge + 200.0;
         let icon_data = {
-            let img =
-                image::load_from_memory(include_bytes!("../../../icons/setting_icon.png")).unwrap();
+            let img = image::load_from_memory(include_bytes!("../../../icons/setting_icon.png"))
+                .expect("unreachable");
             let width = img.width();
             let height = img.height();
             let data = img.into_bytes();
@@ -50,7 +43,7 @@ impl SettingApp {
             native_options,
             Box::new(|cc| Ok(Box::new(App::new(cc, setting, icon_data)))),
         )
-        .unwrap();
+        .expect("unreachable");
     }
 }
 
@@ -83,7 +76,7 @@ impl App {
     ) -> Self {
         cc.egui_ctx.set_theme(egui::ThemePreference::Dark);
         let cap = crate::CHANNEL_CAP;
-        let (keys_sender, keys_receiver) = crossbeam::channel::bounded(cap);
+        let (keys_sender, keys_receiver) = crossbeam_channel::bounded(cap);
         let hook_shared = msg_hook::HookShared {
             egui_ctx: cc.egui_ctx.clone(),
         };
@@ -155,7 +148,7 @@ impl App {
                     pending_setting.font_name != self.shared_data.current_setting.font_name;
                 self.shared_data
                     .key_overlay
-                    .load_setting(pending_setting.clone(), reload_font);
+                    .reload(&pending_setting, reload_font);
                 self.setting_area.reload(&pending_setting);
                 self.shared_data.current_setting = pending_setting;
                 self.shared_data.modified =

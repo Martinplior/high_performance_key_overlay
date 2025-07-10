@@ -10,7 +10,7 @@ use eframe::wgpu::{
 use egui::Color32;
 use parking_lot::Mutex;
 
-use crate::key_property::KeyProperty;
+use crate::key_overlay_core::key_property::KeyProperty;
 
 #[repr(C)]
 #[derive(Default, Clone, Copy, bytemuck::NoUninit)]
@@ -98,10 +98,10 @@ impl CustomCallbackInner {
         if size > self.vertex_buffer.size() as usize {
             self.vertex_buffer_grow();
         }
-        let size = NonZero::new(size as u64).unwrap();
+        let size = unsafe { NonZero::new_unchecked(size as u64) };
         let mut view = queue
             .write_buffer_with(&self.vertex_buffer, 0, size)
-            .unwrap();
+            .expect("unreachable");
         view.copy_from_slice(bytemuck::cast_slice(&self.bar_rects));
     }
 }
@@ -117,7 +117,7 @@ impl CustomCallback {
         key_properties: &[KeyProperty],
         window_size: [f32; 2],
     ) -> Self {
-        let render_state = cc.wgpu_render_state.as_ref().unwrap();
+        let render_state = cc.wgpu_render_state.as_ref().expect("unreachable");
         let device = &render_state.device;
         let shader = device.create_shader_module(include_wgsl!("key_shader.wgsl"));
         let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {

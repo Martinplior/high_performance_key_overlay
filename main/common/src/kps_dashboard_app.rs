@@ -3,31 +3,26 @@ use std::{
     time::{Duration, Instant},
 };
 
-use egui::{Color32, TextureHandle, ViewportBuilder};
+use egui::{Color32, FontData, FontDefinitions, FontFamily, TextureHandle, ViewportBuilder};
 use sak_rs::os::windows::input::GlobalListener;
 use serde::{Deserialize, Serialize};
 
-use crate::{key::Key, key_message::KeyMessage, message_dialog, msg_hook};
+use crate::{key::Key, key_overlay_core::key_message::KeyMessage, message_dialog, msg_hook};
 
-use crossbeam::channel::Receiver as MpscReceiver;
+use crossbeam_channel::Receiver as MpscReceiver;
 
-pub struct MainApp {
-    kps_setting: KpsSetting,
-}
+pub struct KPSApp;
 
-impl MainApp {
+impl KPSApp {
     const EDGE: f32 = 600.0;
 
-    pub fn new() -> Self {
-        Self {
-            kps_setting: KpsSetting::load_from_local_setting(),
-        }
-    }
+    pub fn run() {
+        let kps_setting = KpsSetting::load_from_local_setting();
 
-    pub fn run(self) {
         let edge = Self::EDGE;
         let icon_data = {
-            let img = image::load_from_memory(include_bytes!("../../icons/kps_icon.png")).unwrap();
+            let img = image::load_from_memory(include_bytes!("../../icons/kps_icon.png"))
+                .expect("unreachable");
             let width = img.width();
             let height = img.height();
             let data = img.into_bytes();
@@ -50,9 +45,9 @@ impl MainApp {
         eframe::run_native(
             "HP KPS Dashboard",
             native_options,
-            Box::new(|cc| Ok(Box::new(App::new(cc, self.kps_setting)))),
+            Box::new(|cc| Ok(Box::new(App::new(cc, kps_setting)))),
         )
-        .unwrap();
+        .expect("unreachable");
     }
 }
 
@@ -70,7 +65,7 @@ impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, kps_setting: KpsSetting) -> Self {
         cc.egui_ctx.request_repaint();
         let cap = crate::CHANNEL_CAP;
-        let (keys_sender, keys_receiver) = crossbeam::channel::bounded(cap);
+        let (keys_sender, keys_receiver) = crossbeam_channel::bounded(cap);
         let hook_shared = msg_hook::HookShared {
             egui_ctx: cc.egui_ctx.clone(),
         };
@@ -78,6 +73,7 @@ impl App {
             msg_hook::create_msg_hook(keys_sender, hook_shared),
             msg_hook::create_register_raw_input_hook(),
         );
+        Self::init_fonts(&cc.egui_ctx);
         Self {
             kps: Kps::new(&cc.egui_ctx, kps_setting),
             keys_receiver,
@@ -85,6 +81,64 @@ impl App {
             key_repeat_flags: [false; Self::KEY_REPEAT_FLAGS_CAP],
             _global_listener: global_listener,
         }
+    }
+
+    fn init_fonts(egui_ctx: &egui::Context) {
+        let sys_fonts = font_kit::source::SystemSource::new();
+        let mut font_definitions = FontDefinitions::default();
+        let font_list = ["consolas"];
+        let font_list_iter = font_list.iter().filter_map(|font_family| {
+            let Ok(family_handle) = sys_fonts.select_family_by_name(font_family) else {
+                return None;
+            };
+            let first_font_handle = family_handle.fonts().first()?;
+            let is_ttc = match first_font_handle {
+                font_kit::handle::Handle::Path { path, .. } => {
+                    matches!(
+                        font_kit::font::Font::analyze_path(path).ok()?,
+                        font_kit::file_type::FileType::Collection(_)
+                    )
+                }
+                _ => return None,
+            };
+            let font_data = first_font_handle.load().ok()?.copy_font_data()?;
+            let font_data = if is_ttc {
+                owned_ttf_parser::OwnedFace::from_vec((*font_data).clone(), 0)
+                    .ok()?
+                    .into_vec()
+            } else {
+                (*font_data).clone()
+            };
+            Some((font_data, font_family.to_string()))
+        });
+
+        let font_family_name = egui::FontFamily::Monospace;
+        let default_proportional = font_definitions
+            .families
+            .get(&FontFamily::Proportional)
+            .expect("unreachable")
+            .clone();
+
+        let mut custom_font_names: Vec<_> = font_list_iter
+            .map(|(font_data, font_name)| {
+                font_definitions
+                    .font_data
+                    .insert(font_name.clone(), FontData::from_owned(font_data).into());
+                font_name
+            })
+            .collect();
+        custom_font_names.extend(default_proportional.clone());
+        font_definitions
+            .families
+            .insert(font_family_name.clone(), custom_font_names);
+
+        let mut font_names: Vec<_> = font_list[1..].iter().map(|x| x.to_string()).collect();
+        font_names.extend(default_proportional);
+        font_definitions
+            .families
+            .insert(egui::FontFamily::Proportional, font_names);
+
+        egui_ctx.set_fonts(font_definitions);
     }
 }
 
@@ -99,8 +153,9 @@ impl eframe::App for App {
         self.keys_message_buf
             .drain(..)
             .filter(|key_message| {
+                debug_assert!(key_message.key != Key::Unknown);
                 let index = key_message.key as usize;
-                let flag = self.key_repeat_flags.get_mut(index).unwrap();
+                let flag = unsafe { self.key_repeat_flags.get_unchecked_mut(index) };
                 let old_flag = *flag;
                 let is_pressed = key_message.is_pressed;
                 *flag = is_pressed;
@@ -150,7 +205,7 @@ impl KpsSetting {
         let file = std::fs::File::create(path).map_err(|_| "无法写入文件")?;
         let writer = std::io::BufWriter::new(&file);
         serde_json::ser::to_writer_pretty(writer, &self)
-            .map_err(|err| format!("serde_json::ser::to_writer_pretty错误: {}", err))?;
+            .map_err(|err| format!("serde_json::ser::to_writer_pretty错误: {err}"))?;
         Ok(())
     }
 
@@ -185,9 +240,11 @@ impl Kps {
     fn new(egui_ctx: &egui::Context, setting: KpsSetting) -> Self {
         let (kps_frame_img, kps_pointer_img) = {
             let kps_frame_img =
-                image::load_from_memory(include_bytes!("../../textures/kps_frame.png")).unwrap();
+                image::load_from_memory(include_bytes!("../../textures/kps_frame.png"))
+                    .expect("unreachable");
             let kps_pointer_img =
-                image::load_from_memory(include_bytes!("../../textures/kps_pointer.png")).unwrap();
+                image::load_from_memory(include_bytes!("../../textures/kps_pointer.png"))
+                    .expect("unreachable");
             let kps_frame_img = egui::ColorImage::from_rgba_unmultiplied(
                 [
                     kps_frame_img.width() as usize,
@@ -224,7 +281,7 @@ impl Kps {
     }
 
     fn show(&mut self, ui: &mut egui::Ui) {
-        let edge = MainApp::EDGE;
+        let edge = KPSApp::EDGE;
         let painter = ui.painter();
 
         let uv = egui::Rect::from_min_max([0.0, 0.0].into(), [1.0, 1.0].into());
@@ -289,28 +346,30 @@ impl Kps {
 
     fn remove_outer_key(&mut self, instant_now: Instant) {
         let dead_line = instant_now - Duration::from_secs(1);
-        let count = self
-            .key_instant_queue
-            .iter()
-            .take_while(|&instant| *instant < dead_line)
-            .count();
-        self.key_instant_queue.drain(..count);
+        while let Some(instant) = self.key_instant_queue.front() {
+            if *instant < dead_line {
+                self.key_instant_queue.pop_front();
+            } else {
+                break;
+            }
+        }
     }
 
     fn count(&self) -> u32 {
         self.key_instant_queue.len() as u32
     }
 
-    fn update_pointer_value(&mut self, stable_dt: f32) {
+    fn update_pointer_value(&mut self, dt: f32) {
         // PID algorithm: u_p = k_p * e(t)
-        let error = self.count() as f32 - self.pointer_value;
+        let target = self.count() as f32;
+        let error = target - self.pointer_value;
         let velocity = self.pointer_velocity_ratio * error;
-        self.pointer_value += velocity * stable_dt;
-        if error.is_sign_positive() {
-            self.pointer_value = self.pointer_value.min(self.count() as f32);
+        let new_pointer_value = self.pointer_value + velocity * dt;
+        self.pointer_value = if error.is_sign_positive() {
+            new_pointer_value.min(target)
         } else {
-            self.pointer_value = self.pointer_value.max(self.count() as f32);
-        }
+            new_pointer_value.max(target)
+        };
     }
 
     fn need_repaint(&self) -> bool {

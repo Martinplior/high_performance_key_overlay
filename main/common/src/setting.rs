@@ -3,12 +3,7 @@
 use egui::Pos2;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    key::Key,
-    key_property::{KeyCounterProperty, KeyDirection, KeyProperty},
-    message_dialog,
-    ucolor32::UColor32,
-};
+use crate::{key::Key, message_dialog, ucolor32::UColor32};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct WindowSetting {
@@ -54,6 +49,8 @@ pub type Setting = v2::Setting;
 
 pub mod v2 {
     use std::io::Seek;
+
+    use crate::key_overlay_core::key_property::{KeyCounterProperty, KeyDirection, KeyProperty};
 
     use super::*;
 
@@ -115,7 +112,7 @@ pub mod v2 {
             let file = std::fs::File::create(path).map_err(|_| "无法写入文件")?;
             let writer = std::io::BufWriter::new(&file);
             serde_json::ser::to_writer_pretty(writer, &self)
-                .map_err(|err| format!("serde_json::ser::to_writer_pretty错误: {}", err))?;
+                .map_err(|err| format!("serde_json::ser::to_writer_pretty错误: {err}"))?;
             Ok(())
         }
 
@@ -168,25 +165,28 @@ pub mod v2 {
         }
 
         pub fn default_4k() -> Self {
-            serde_json::de::from_str(include_str!("../../default_settings/4K.json")).unwrap()
+            serde_json::de::from_str(include_str!("../../default_settings/4K.json"))
+                .expect("load default setting failed")
         }
 
         pub fn default_7k() -> Self {
-            serde_json::de::from_str(include_str!("../../default_settings/7K.json")).unwrap()
+            serde_json::de::from_str(include_str!("../../default_settings/7K.json"))
+                .expect("load default setting failed")
         }
 
         pub fn default_26k() -> Self {
-            serde_json::de::from_str(include_str!("../../default_settings/26K.json")).unwrap()
+            serde_json::de::from_str(include_str!("../../default_settings/26K.json"))
+                .expect("load default setting failed")
         }
 
         pub fn default_hello_world() -> Self {
             serde_json::de::from_str(include_str!("../../default_settings/HelloWorld.json"))
-                .unwrap()
+                .expect("load default setting failed")
         }
 
         pub fn default_single_counter() -> Self {
             serde_json::de::from_str(include_str!("../../default_settings/单个计数器.json"))
-                .unwrap()
+                .expect("load default setting failed")
         }
     }
 
@@ -337,6 +337,8 @@ pub mod v2 {
 }
 
 pub mod v1 {
+    use crate::key_overlay_core::key_property::KeyProperty;
+
     use super::*;
 
     #[derive(Serialize, Deserialize)]

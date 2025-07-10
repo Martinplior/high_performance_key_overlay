@@ -1,25 +1,20 @@
+pub mod key_overlay;
+mod key_shader;
+
 use egui::ViewportBuilder;
 use sak_rs::os::windows::input::GlobalListener;
 
 use crate::{
-    key_overlay::KeyOverlay,
+    main_app::key_overlay::KeyOverlay,
     msg_hook,
     setting::{Setting, WindowSetting},
 };
 
-pub struct MainApp {
-    setting: Option<Setting>,
-}
+pub struct MainApp;
 
 impl MainApp {
-    pub fn new() -> Self {
-        Self {
-            setting: Some(Setting::load_from_local_setting()),
-        }
-    }
-
-    pub fn run(mut self) {
-        let setting = self.setting.take().unwrap();
+    pub fn run() {
+        let setting = Setting::load_from_local_setting();
         let WindowSetting {
             width,
             height,
@@ -27,7 +22,8 @@ impl MainApp {
         } = setting.window_setting;
 
         let icon_data = {
-            let img = image::load_from_memory(include_bytes!("../../icons/main_icon.png")).unwrap();
+            let img = image::load_from_memory(include_bytes!("../../../icons/main_icon.png"))
+                .expect("unreachable");
             let width = img.width();
             let height = img.height();
             let data = img.into_bytes();
@@ -52,7 +48,7 @@ impl MainApp {
             native_options,
             Box::new(|cc| Ok(Box::new(App::new(cc, setting)))),
         )
-        .unwrap();
+        .expect("unreachable");
     }
 }
 
@@ -65,7 +61,7 @@ impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, setting: Setting) -> Self {
         cc.egui_ctx.request_repaint();
         let cap = crate::CHANNEL_CAP;
-        let (keys_sender, keys_receiver) = crossbeam::channel::bounded(cap);
+        let (keys_sender, keys_receiver) = crossbeam_channel::bounded(cap);
         let hook_shared = msg_hook::HookShared {
             egui_ctx: cc.egui_ctx.clone(),
         };

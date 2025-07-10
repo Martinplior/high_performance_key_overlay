@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use serde::{Deserialize, Serialize};
 
 use crate::{key::Key, ucolor32::UColor32};
@@ -42,6 +40,7 @@ impl KeyCounterProperty {
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_text_color(mut self, text_color: UColor32) -> Self {
         self.text_color = text_color;
         self
@@ -138,11 +137,13 @@ impl KeyProperty {
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_bar_speed(mut self, bar_speed: f32) -> Self {
         self.bar_speed = bar_speed;
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_max_distance(mut self, max_distance: Option<f32>) -> Self {
         if let Some(max_distance) = max_distance {
             self.max_distance = (true, max_distance);
@@ -152,6 +153,7 @@ impl KeyProperty {
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_text_color(mut self, text_color: UColor32) -> Self {
         self.text_color = text_color;
         self
