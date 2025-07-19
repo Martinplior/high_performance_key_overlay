@@ -1,9 +1,8 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
-use std::sync::Arc;
-
 pub mod kps_dashboard_app;
 pub mod main_app;
+pub mod main_app_vk;
 pub mod setting_app;
 
 mod key;
@@ -13,10 +12,13 @@ mod setting;
 mod ucolor32;
 mod utils;
 
+use std::sync::Arc;
+
 use eframe::wgpu::{MemoryHints, Trace, wgt::DeviceDescriptor};
 use sak_rs::message_dialog;
 
 /// oh, blazing fast!
+#[cfg(not(feature = "save_memory"))]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
@@ -24,6 +26,12 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 const CHANNEL_CAP: usize = u16::MAX as usize + 1;
 
 const SETTING_FILE_NAME: &str = "setting.json";
+
+const DEFAULT_FONT_NAMES: [&str; 3] = [
+    Setting::DEFAULT_FONT_NAME,
+    "Segoe UI emoji",
+    "Segoe UI Symbol",
+];
 
 fn common_eframe_native_options(vsync: bool) -> eframe::NativeOptions {
     use eframe::egui_wgpu::{WgpuConfiguration, WgpuSetup, WgpuSetupCreateNew};
@@ -40,9 +48,13 @@ fn common_eframe_native_options(vsync: bool) -> eframe::NativeOptions {
                 device_descriptor: Arc::new(|adapter| {
                     let r = DeviceDescriptor {
                         label: None,
-                        required_features: adapter.features(),
+                        required_features: Features::empty(),
                         required_limits: adapter.limits(),
-                        memory_hints: MemoryHints::Performance,
+                        memory_hints: if cfg!(feature = "save_memory") {
+                            MemoryHints::MemoryUsage
+                        } else {
+                            MemoryHints::Performance
+                        },
                         trace: Trace::Off,
                     };
                     #[cfg(debug_assertions)]
@@ -74,79 +86,16 @@ fn key_overlay_setting_path() -> std::path::PathBuf {
 }
 
 pub use sak_rs::graceful_run;
+use wgpu::Features;
+
+use crate::setting::Setting;
 
 #[cfg(test)]
 mod tests {
 
     use egui::{Color32, FontDefinitions};
-    use font_kit::{family_name::FamilyName, properties::Properties};
 
     use crate::{setting::Setting, ucolor32::UColor32};
-
-    #[test]
-    fn query_all_families() {
-        let sys_fonts = font_kit::source::SystemSource::new();
-        let families = sys_fonts.all_families().unwrap();
-        families.iter().enumerate().for_each(|(index, family)| {
-            println!("{:^3}: {}", index, family);
-        });
-    }
-
-    #[test]
-    fn query_fonts() {
-        let sys_fonts = font_kit::source::SystemSource::new();
-        let families = sys_fonts.all_families().unwrap();
-        families
-            .iter()
-            .enumerate()
-            .take(50)
-            .for_each(|(index, family)| {
-                let family_handle = sys_fonts.select_family_by_name(family).unwrap();
-                let fonts = family_handle.fonts();
-                fonts.iter().for_each(|handle| {
-                    let font = handle.load().unwrap();
-                    let font_index = match handle {
-                        font_kit::handle::Handle::Path { font_index, .. } => font_index,
-                        _ => unreachable!(),
-                    };
-                    println!(
-                        "{:^3}: {:^30} | {:^50} | font_index: {:^3}",
-                        index,
-                        family,
-                        font.full_name(),
-                        font_index
-                    );
-                });
-            });
-    }
-
-    #[test]
-    fn select_font() {
-        let sys_fonts = font_kit::source::SystemSource::new();
-        let font_family = "等距更纱黑体 SC";
-        let Ok(family_handle) = sys_fonts.select_family_by_name(font_family) else {
-            panic!("未找到字体: {}", font_family);
-        };
-        println!("family count: {}", family_handle.fonts().len());
-        family_handle.fonts().iter().for_each(|handle| {
-            let font = handle.load().unwrap();
-            println!("font name: {}", font.full_name());
-        });
-    }
-
-    #[test]
-    fn select_font_single() {
-        let sys_fonts = font_kit::source::SystemSource::new();
-        let font_name = "等距更纱黑体 SC";
-        let font_handle = sys_fonts
-            .select_best_match(
-                &[FamilyName::Title(font_name.to_string())],
-                &Properties::new(),
-            )
-            .unwrap();
-        let font = font_handle.load().unwrap();
-        println!("font name: {}", font.full_name());
-    }
 
     #[test]
     fn serialize() {

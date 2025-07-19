@@ -1,8 +1,12 @@
 pub mod key_overlay;
+
 mod key_shader;
 
+use std::time::Instant;
+
 use egui::ViewportBuilder;
-use sak_rs::os::windows::input::GlobalListener;
+
+use sak_rs::{os::windows::input::GlobalListener, sync::mpmc};
 
 use crate::{
     main_app::key_overlay::KeyOverlay,
@@ -61,9 +65,12 @@ impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, setting: Setting) -> Self {
         cc.egui_ctx.request_repaint();
         let cap = crate::CHANNEL_CAP;
-        let (keys_sender, keys_receiver) = crossbeam_channel::bounded(cap);
+        let (keys_sender, keys_receiver) = mpmc::queue::bounded(cap);
+        let egui_ctx = cc.egui_ctx.clone();
         let hook_shared = msg_hook::HookShared {
-            egui_ctx: cc.egui_ctx.clone(),
+            request_redraw: Box::new(move || {
+                (!egui_ctx.has_requested_repaint()).then(|| egui_ctx.request_repaint());
+            }),
         };
         let global_listener = GlobalListener::new(
             msg_hook::create_msg_hook(keys_sender, hook_shared),
@@ -83,7 +90,7 @@ impl eframe::App for App {
     }
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let instant_now = std::time::Instant::now();
+        let instant_now = Instant::now();
         self.key_overlay.update(instant_now);
         egui::CentralPanel::default()
             .frame(egui::Frame::NONE)

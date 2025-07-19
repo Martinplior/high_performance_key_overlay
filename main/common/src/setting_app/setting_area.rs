@@ -1,6 +1,7 @@
 use std::ptr::NonNull;
 
 use egui::{PopupCloseBehavior, Widget};
+use sak_rs::font::SystemFontsLoader;
 
 use crate::{
     key::Key,
@@ -16,7 +17,7 @@ use crate::{
 
 use super::AppSharedData;
 
-use crossbeam_channel::Receiver as MpscReceiver;
+use sak_rs::sync::mpmc::queue::BoundedReceiver as MpscReceiver;
 
 macro_rules! grid_new_row {
     ($ui:ident, $b: block) => {{
@@ -92,8 +93,8 @@ impl WindowSettingRow {
 
     fn new(setting: &Setting) -> Self {
         let font_families = {
-            let system_source = font_kit::source::SystemSource::new();
-            if let Ok(families) = system_source.all_families() {
+            let fonts_loader = SystemFontsLoader::new();
+            if let Ok(families) = fonts_loader.all_family_names() {
                 let mut font_families: Box<[_]> =
                     families.into_iter().map(|x| x.into_boxed_str()).collect();
                 font_families.sort();
@@ -334,6 +335,8 @@ struct KeyPropertySettingRow {
 }
 
 impl KeyPropertySettingRow {
+    const MAX_FONT_SIZE: f32 = 2048.0;
+
     fn new(setting: &Setting) -> Self {
         Self {
             key_properties: setting.key_properties.clone(),
@@ -353,7 +356,7 @@ impl KeyPropertySettingRow {
         self.check_states.resize(self.key_properties.len(), false);
     }
 
-    fn update(&mut self, request_reload: &mut bool, keys_receiver: &mut MpscReceiver<KeyMessage>) {
+    fn update(&mut self, request_reload: &mut bool, keys_receiver: &MpscReceiver<KeyMessage>) {
         self.handle_global_response();
         *request_reload |= std::mem::take(&mut self.request_reload);
         if self.key_bind_menu_opened {
@@ -672,7 +675,7 @@ impl KeyPropertySettingRow {
             .selectable(false)
             .ui(ui)
             .on_hover_text("按键文本字体的大小");
-        egui::Slider::new(&mut key_property.font_size, 1.0..=10_000.0)
+        egui::Slider::new(&mut key_property.font_size, 1.0..=Self::MAX_FONT_SIZE)
             .integer()
             .logarithmic(true)
             .drag_value_speed(1.0)
@@ -929,12 +932,15 @@ impl KeyPropertySettingRow {
             .selectable(false)
             .ui(ui)
             .on_hover_text("计数器字体的大小");
-        egui::Slider::new(&mut key_property.key_counter.1.font_size, 1.0..=10_000.0)
-            .integer()
-            .logarithmic(true)
-            .drag_value_speed(1.0)
-            .ui(ui)
-            .changed()
+        egui::Slider::new(
+            &mut key_property.key_counter.1.font_size,
+            1.0..=Self::MAX_FONT_SIZE,
+        )
+        .integer()
+        .logarithmic(true)
+        .drag_value_speed(1.0)
+        .ui(ui)
+        .changed()
     }
 
     fn grid_key_counter_color_common(ui: &mut egui::Ui, key_property: &mut KeyProperty) -> bool {

@@ -4,12 +4,12 @@ use std::{
 };
 
 use egui::{Color32, FontData, FontDefinitions, FontFamily, TextureHandle, ViewportBuilder};
-use sak_rs::os::windows::input::GlobalListener;
+use sak_rs::{font::SystemFontsLoader, os::windows::input::GlobalListener, sync::mpmc};
 use serde::{Deserialize, Serialize};
 
 use crate::{key::Key, key_overlay_core::key_message::KeyMessage, message_dialog, msg_hook};
 
-use crossbeam_channel::Receiver as MpscReceiver;
+use sak_rs::sync::mpmc::queue::BoundedReceiver as MpscReceiver;
 
 pub struct KPSApp;
 
@@ -65,9 +65,12 @@ impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, kps_setting: KpsSetting) -> Self {
         cc.egui_ctx.request_repaint();
         let cap = crate::CHANNEL_CAP;
-        let (keys_sender, keys_receiver) = crossbeam_channel::bounded(cap);
+        let (keys_sender, keys_receiver) = mpmc::queue::bounded(cap);
+        let egui_ctx = cc.egui_ctx.clone();
         let hook_shared = msg_hook::HookShared {
-            egui_ctx: cc.egui_ctx.clone(),
+            request_redraw: Box::new(move || {
+                (!egui_ctx.has_requested_repaint()).then(|| egui_ctx.request_repaint());
+            }),
         };
         let global_listener = GlobalListener::new(
             msg_hook::create_msg_hook(keys_sender, hook_shared),
@@ -84,60 +87,21 @@ impl App {
     }
 
     fn init_fonts(egui_ctx: &egui::Context) {
-        let sys_fonts = font_kit::source::SystemSource::new();
+        let fonts_loader = SystemFontsLoader::new();
         let mut font_definitions = FontDefinitions::default();
-        let font_list = ["consolas"];
-        let font_list_iter = font_list.iter().filter_map(|font_family| {
-            let Ok(family_handle) = sys_fonts.select_family_by_name(font_family) else {
-                return None;
-            };
-            let first_font_handle = family_handle.fonts().first()?;
-            let is_ttc = match first_font_handle {
-                font_kit::handle::Handle::Path { path, .. } => {
-                    matches!(
-                        font_kit::font::Font::analyze_path(path).ok()?,
-                        font_kit::file_type::FileType::Collection(_)
-                    )
-                }
-                _ => return None,
-            };
-            let font_data = first_font_handle.load().ok()?.copy_font_data()?;
-            let font_data = if is_ttc {
-                owned_ttf_parser::OwnedFace::from_vec((*font_data).clone(), 0)
-                    .ok()?
-                    .into_vec()
-            } else {
-                (*font_data).clone()
-            };
-            Some((font_data, font_family.to_string()))
-        });
-
-        let font_family_name = egui::FontFamily::Monospace;
-        let default_proportional = font_definitions
+        let font_name = "consolas";
+        let font_data = fonts_loader
+            .load_by_family_name(font_name)
+            .unwrap_or_else(|e| panic!("Font not found: {font_name}\nError: {e}"));
+        font_definitions.font_data.insert(
+            font_name.to_string(),
+            FontData::from_owned(font_data).into(),
+        );
+        font_definitions
             .families
-            .get(&FontFamily::Proportional)
+            .get_mut(&FontFamily::Monospace)
             .expect("unreachable")
-            .clone();
-
-        let mut custom_font_names: Vec<_> = font_list_iter
-            .map(|(font_data, font_name)| {
-                font_definitions
-                    .font_data
-                    .insert(font_name.clone(), FontData::from_owned(font_data).into());
-                font_name
-            })
-            .collect();
-        custom_font_names.extend(default_proportional.clone());
-        font_definitions
-            .families
-            .insert(font_family_name.clone(), custom_font_names);
-
-        let mut font_names: Vec<_> = font_list[1..].iter().map(|x| x.to_string()).collect();
-        font_names.extend(default_proportional);
-        font_definitions
-            .families
-            .insert(egui::FontFamily::Proportional, font_names);
-
+            .insert(0, font_name.to_string());
         egui_ctx.set_fonts(font_definitions);
     }
 }

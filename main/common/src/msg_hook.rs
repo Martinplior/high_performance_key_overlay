@@ -4,13 +4,12 @@ use windows::Win32::{
     UI::{Input::KeyboardAndMouse::VK_SHIFT, WindowsAndMessaging::WM_INPUT},
 };
 
-use crossbeam_channel::Sender as MpscSender;
+use sak_rs::sync::mpmc::queue::BoundedSender as MpscSender;
 
 use crate::{key::Key, key_overlay_core::key_message::KeyMessage};
 
-#[derive(Debug, Default)]
 pub struct HookShared {
-    pub egui_ctx: egui::Context,
+    pub request_redraw: Box<dyn FnMut() + Send>,
 }
 
 pub fn create_register_raw_input_hook() -> impl FnOnce(&HWND) {
@@ -29,13 +28,11 @@ pub fn create_register_raw_input_hook() -> impl FnOnce(&HWND) {
 
 pub fn create_msg_hook(
     msg_sender: MpscSender<KeyMessage>,
-    hook_shared: HookShared,
+    mut hook_shared: HookShared,
 ) -> impl FnMut(&WinMsg) -> bool {
     move |msg| {
         if msg.msg.message == WM_INPUT {
-            handle_raw_input(msg, &msg_sender);
-            let ctx = &hook_shared.egui_ctx;
-            (!ctx.has_requested_repaint()).then(|| ctx.request_repaint());
+            handle_raw_input(msg, &msg_sender, &mut hook_shared.request_redraw);
             return true;
         }
         false
@@ -43,7 +40,11 @@ pub fn create_msg_hook(
 }
 
 #[inline(always)]
-fn handle_raw_input(msg: &WinMsg, msg_sender: &MpscSender<KeyMessage>) {
+fn handle_raw_input(
+    msg: &WinMsg,
+    msg_sender: &MpscSender<KeyMessage>,
+    request_redraw: &mut dyn FnMut(),
+) {
     let raw_input = raw_input::RawInput::from_msg(&msg.msg);
     match raw_input {
         raw_input::RawInput::Keyboard(keyboard) => {
@@ -72,7 +73,9 @@ fn handle_raw_input(msg: &WinMsg, msg_sender: &MpscSender<KeyMessage>) {
             let key_message = KeyMessage::new(key, is_pressed, msg.instant);
             #[cfg(debug_assertions)]
             println!("{key_message:?}");
-            msg_sender.send(key_message).expect("unreachable");
+            let oldest = msg_sender.force_send(key_message);
+            request_redraw();
+            oldest.map(|o| eprintln!("queue is full! oldest: {o:?}"));
         }
         raw_input::RawInput::Mouse(mouse) => {
             [
@@ -93,7 +96,9 @@ fn handle_raw_input(msg: &WinMsg, msg_sender: &MpscSender<KeyMessage>) {
                 let key_message = KeyMessage::new(key, is_pressed, msg.instant);
                 #[cfg(debug_assertions)]
                 println!("{key_message:?}");
-                msg_sender.send(key_message).expect("unreachable");
+                let oldest = msg_sender.force_send(key_message);
+                request_redraw();
+                oldest.map(|o| eprintln!("queue is full! oldest: {o:?}"));
             });
         }
         _ => unreachable!("unexpected raw input"),

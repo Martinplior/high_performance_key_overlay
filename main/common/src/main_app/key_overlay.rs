@@ -1,27 +1,23 @@
 use std::time::Instant;
 
 use crate::{
-    key_overlay_core::{
-        key_draw_cache::KeyDrawCache, key_handler::KeyHandler, key_message::KeyMessage,
-        key_property::KeyProperty,
-    },
+    key_overlay_core::{KeyOverlayCore, key_handler::KeyHandler, key_message::KeyMessage},
     main_app::key_shader,
     setting::Setting,
 };
 use eframe::egui_wgpu;
 use egui::{Color32, CornerRadius, FontData, FontDefinitions, FontFamily, FontId};
 
-use crossbeam_channel::Receiver as MpscReceiver;
+use sak_rs::font::SystemFontsLoader;
+use sak_rs::sync::mpmc::queue::BoundedReceiver as MpscReceiver;
 
 pub struct KeyOverlay {
+    core: KeyOverlayCore,
     instant_now: Instant,
-    key_messages_buffer: Vec<KeyMessage>,
-    keys_receiver: MpscReceiver<KeyMessage>,
     egui_ctx: egui::Context,
     background_color: Color32,
     key_shader: key_shader::CustomCallback,
     font_family: FontFamily,
-    key_handler: KeyHandler,
 }
 
 impl KeyOverlay {
@@ -43,22 +39,20 @@ impl KeyOverlay {
 
         let background_color = Color32::from(*background_color);
 
-        Self::init_fonts(egui_ctx, font_name);
+        Self::init_fonts(egui_ctx, [&**font_name]);
 
         let instant_now = Instant::now();
         let window_size = [window_setting.width, window_setting.height];
         let key_shader = key_shader::CustomCallback::new(cc, key_properties, window_size);
         let font_family = egui::FontFamily::Name(Self::FONT_FAMILY_NAME.into());
-        let key_handler = KeyHandler::new(setting);
+        let core = KeyOverlayCore::new(setting, keys_receiver);
         Self {
+            core,
             instant_now,
-            key_messages_buffer: Vec::with_capacity(64),
-            keys_receiver,
             egui_ctx: egui_ctx.clone(),
             background_color,
             key_shader,
             font_family,
-            key_handler,
         }
     }
 
@@ -72,41 +66,29 @@ impl KeyOverlay {
 
         let new_background_color = Color32::from(*background_color);
 
-        reload_font.then(|| Self::init_fonts(&self.egui_ctx, font_name));
+        reload_font.then(|| Self::init_fonts(&self.egui_ctx, [&**font_name]));
 
         self.background_color = new_background_color;
-        self.key_handler.reload(setting);
+        self.core.reload(setting);
         let window_size = [window_setting.width, window_setting.height];
         self.key_shader
-            .reload(self.key_handler.key_properties(), window_size);
+            .reload(self.core.key_handler().key_properties(), window_size);
     }
 
-    fn init_fonts(egui_ctx: &egui::Context, font_family: &str) {
-        let sys_fonts = font_kit::source::SystemSource::new();
+    fn init_fonts<'a>(
+        egui_ctx: &egui::Context,
+        custom_font_names: impl IntoIterator<Item = &'a str> + 'a,
+    ) {
+        let fonts_loader = SystemFontsLoader::new();
         let mut font_definitions = FontDefinitions::default();
-        let font_list = [font_family, Setting::DEFAULT_FONT_NAME, "Segoe UI emoji"];
+
+        let font_list: Vec<_> = custom_font_names
+            .into_iter()
+            .chain(crate::DEFAULT_FONT_NAMES)
+            .map(|x| x.to_string())
+            .collect();
         let font_list_iter = font_list.iter().filter_map(|font_family| {
-            let Ok(family_handle) = sys_fonts.select_family_by_name(font_family) else {
-                return None;
-            };
-            let first_font_handle = family_handle.fonts().first()?;
-            let is_ttc = match first_font_handle {
-                font_kit::handle::Handle::Path { path, .. } => {
-                    matches!(
-                        font_kit::font::Font::analyze_path(path).ok()?,
-                        font_kit::file_type::FileType::Collection(_)
-                    )
-                }
-                _ => return None,
-            };
-            let font_data = first_font_handle.load().ok()?.copy_font_data()?;
-            let font_data = if is_ttc {
-                owned_ttf_parser::OwnedFace::from_vec((*font_data).clone(), 0)
-                    .ok()?
-                    .into_vec()
-            } else {
-                (*font_data).clone()
-            };
+            let font_data = fonts_loader.load_by_family_name(font_family).ok()?;
             Some((font_data, font_family.to_string()))
         });
 
@@ -141,16 +123,11 @@ impl KeyOverlay {
 
     pub fn update(&mut self, instant_now: Instant) {
         self.instant_now = instant_now;
-        self.key_messages_buffer
-            .extend(self.keys_receiver.try_iter());
-        self.key_messages_buffer.drain(..).for_each(|key_message| {
-            self.key_handler.update(key_message);
-        });
-        self.key_handler.remove_outer_bar(instant_now);
+        self.core.update(instant_now);
     }
 
-    pub fn keys_receiver(&mut self) -> &mut MpscReceiver<KeyMessage> {
-        &mut self.keys_receiver
+    pub fn keys_receiver(&self) -> &MpscReceiver<KeyMessage> {
+        self.core.keys_receiver()
     }
 
     pub fn show(&self, ui: &mut egui::Ui) {
@@ -162,8 +139,7 @@ impl KeyOverlay {
         );
         KeyDrawingPipeline {
             key_shader: &self.key_shader,
-            key_properties: self.key_handler.key_properties(),
-            key_draw_caches: self.key_handler.key_draw_caches(),
+            key_handler: self.core.key_handler(),
             font_family: &self.font_family,
             instant_now: self.instant_now,
             painter,
@@ -172,14 +148,13 @@ impl KeyOverlay {
     }
 
     pub fn need_repaint(&self) -> bool {
-        self.key_handler.need_repaint()
+        self.core.need_repaint()
     }
 }
 
 struct KeyDrawingPipeline<'a> {
     key_shader: &'a key_shader::CustomCallback,
-    key_properties: &'a [KeyProperty],
-    key_draw_caches: &'a [KeyDrawCache],
+    key_handler: &'a KeyHandler,
     font_family: &'a egui::FontFamily,
     instant_now: Instant,
     painter: &'a egui::Painter,
@@ -199,38 +174,19 @@ impl<'a> KeyDrawingPipeline<'a> {
 
         let mut key_shader_inner = self.key_shader.inner.lock();
         key_shader_inner.bar_rects.clear();
-        let bar_rect_iter =
-            self.key_draw_caches
-                .iter()
-                .enumerate()
-                .flat_map(|(index, key_drawer)| {
-                    key_drawer
-                        .begin_hold_instant
-                        .iter()
-                        .map(move |begin_hold_instant| {
-                            let begin_duration_secs = instant_now
-                                .duration_since(*begin_hold_instant)
-                                .as_secs_f32();
-                            key_shader::BarRect {
-                                property_index: index as u32,
-                                begin_duration_secs,
-                                end_duration_secs: 0.0,
-                            }
-                        })
-                        .chain(key_drawer.bar_queue.iter().map(move |key_bar| {
-                            let begin_duration_secs = instant_now
-                                .duration_since(key_bar.press_instant)
-                                .as_secs_f32();
-                            let end_duration_secs = instant_now
-                                .duration_since(key_bar.release_instant)
-                                .as_secs_f32();
-                            key_shader::BarRect {
-                                property_index: index as u32,
-                                begin_duration_secs,
-                                end_duration_secs,
-                            }
-                        }))
-                });
+        let bar_rect_iter = self.key_handler.key_draw_caches_flat_map_iter(
+            instant_now,
+            &|index, begin_duration_secs| key_shader::BarRect {
+                property_index: index as u32,
+                begin_duration_secs,
+                end_duration_secs: 0.0,
+            },
+            &|index, begin_duration_secs, end_duration_secs| key_shader::BarRect {
+                property_index: index as u32,
+                begin_duration_secs,
+                end_duration_secs,
+            },
+        );
         key_shader_inner.bar_rects.extend(bar_rect_iter);
         if key_shader_inner.bar_rects.is_empty() {
             return;
@@ -243,9 +199,10 @@ impl<'a> KeyDrawingPipeline<'a> {
     }
 
     fn draw_frames(&self) {
-        self.key_properties
+        self.key_handler
+            .key_properties()
             .iter()
-            .zip(self.key_draw_caches.iter())
+            .zip(self.key_handler.key_draw_caches().iter())
             .for_each(|(key_property, key_draw_cache)| {
                 let rect = egui::Rect::from_min_size(
                     key_property.position,
@@ -266,9 +223,10 @@ impl<'a> KeyDrawingPipeline<'a> {
     }
 
     fn draw_key_texts(&self) {
-        self.key_properties
+        self.key_handler
+            .key_properties()
             .iter()
-            .zip(self.key_draw_caches.iter())
+            .zip(self.key_handler.key_draw_caches().iter())
             .for_each(|(key_property, key_draw_cache)| {
                 self.painter.text(
                     key_property.position
@@ -282,9 +240,10 @@ impl<'a> KeyDrawingPipeline<'a> {
     }
 
     fn draw_counter_texts(&self) {
-        self.key_properties
+        self.key_handler
+            .key_properties()
             .iter()
-            .zip(self.key_draw_caches.iter())
+            .zip(self.key_handler.key_draw_caches().iter())
             .filter(|(key_property, _)| key_property.key_counter.0)
             .for_each(|(key_property, key_draw_cache)| {
                 let counter = &key_property.key_counter.1;

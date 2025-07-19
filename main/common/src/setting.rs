@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use egui::Pos2;
 use serde::{Deserialize, Serialize};
 
@@ -45,7 +43,7 @@ impl WindowSetting {
     }
 }
 
-pub type Setting = v2::Setting;
+pub use v2::Setting;
 
 pub mod v2 {
     use std::io::Seek;
@@ -336,7 +334,7 @@ pub mod v2 {
     }
 }
 
-pub mod v1 {
+mod v1 {
     use crate::key_overlay_core::key_property::KeyProperty;
 
     use super::*;

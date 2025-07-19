@@ -156,6 +156,43 @@ impl KeyHandler {
         &self.key_draw_caches
     }
 
+    /// F1: `Fn(index, begin_duration_secs)`
+    ///
+    /// F2: `Fn(index, begin_duration_secs, end_duration_secs)`
+    pub fn key_draw_caches_flat_map_iter<'a, T, F1, F2>(
+        &'a self,
+        instant_now: Instant,
+        begin_hold_instant_map: &'a F1,
+        key_bar_map: &'a F2,
+    ) -> impl Iterator<Item = T> + 'a
+    where
+        T: 'a,
+        F1: Fn(usize, f32) -> T + 'a,
+        F2: Fn(usize, f32, f32) -> T + 'a,
+    {
+        self.key_draw_caches
+            .iter()
+            .enumerate()
+            .flat_map(move |(index, cache)| {
+                cache
+                    .begin_hold_instant
+                    .map(move |instant| {
+                        let begin_duration_secs = instant_now.duration_since(instant).as_secs_f32();
+                        begin_hold_instant_map(index, begin_duration_secs)
+                    })
+                    .into_iter()
+                    .chain(cache.bar_queue.iter().map(move |key_bar| {
+                        let begin_duration_secs = instant_now
+                            .duration_since(key_bar.press_instant)
+                            .as_secs_f32();
+                        let end_duration_secs = instant_now
+                            .duration_since(key_bar.release_instant)
+                            .as_secs_f32();
+                        key_bar_map(index, begin_duration_secs, end_duration_secs)
+                    }))
+            })
+    }
+
     pub fn need_repaint(&self) -> bool {
         self.key_draw_caches
             .iter()

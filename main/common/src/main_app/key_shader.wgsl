@@ -7,16 +7,12 @@ struct Direction {
     v: u32,
 }
 
-const Direction_UP: Direction = Direction(0);
-const Direction_DOWN: Direction = Direction(1);
-const Direction_LEFT: Direction = Direction(2);
-const Direction_RIGHT: Direction = Direction(3);
-
 struct Property {
     pressed_color: vec4<f32>,
     key_position: vec2<f32>,
     width: f32,
     height: f32,
+    /// 0: up, 1: down, 2: left, 3: right
     direction: Direction,
     bar_speed: f32,
     max_distance: f32,
@@ -85,20 +81,9 @@ fn Rect_from_x_y_ranges(x_range: Rangef, y_range: Rangef) -> Rect {
     return Rect(min, max);
 }
 
-fn Rect_from_BarRect(
-    head: f32,
-    tail: f32,
-    property: Property,
-    up_down_x_range: Rangef,
-    left_right_y_range: Rangef
-) -> Rect {
+fn Rect_from_BarRect(head: f32, tail: f32, property: Property, up_down_x_range: Rangef, left_right_y_range: Rangef) -> Rect {
     let key_position = property.key_position;
-    let base_vec = vec4<f32>(
-        key_position.y,
-        key_position.y + property.height,
-        key_position.x,
-        key_position.x + property.width
-    );
+    let base_vec = vec4<f32>(key_position.y, key_position.y + property.height, key_position.x, key_position.x + property.width);
     let src_head_vec = vec4<f32>(-head, head, -head, head);
     let src_tail_vec = vec4<f32>(-tail, tail, -tail, tail);
 
@@ -140,19 +125,8 @@ fn vs_main(input: VertexInput, bar_rect: BarRect) -> VertexOuptut {
     let left_right_y_range = left_right_y_range(property);
     let head = head(bar_rect, property.bar_speed);
     let tail = min(tail(bar_rect, property.bar_speed), head - 1.0);
-    let rect = Rect_from_BarRect(
-        head,
-        tail,
-        property,
-        up_down_x_range,
-        left_right_y_range
-    );
-    let vertexes = array<vec2<f32>, 4>(
-        rect.min,
-        vec2<f32>(rect.max.x, rect.min.y),
-        vec2<f32>(rect.min.x, rect.max.y),
-        rect.max
-    );
+    let rect = Rect_from_BarRect(head, tail, property, up_down_x_range, left_right_y_range);
+    let vertexes = array<vec2<f32>, 4>(rect.min, vec2<f32>(rect.max.x, rect.min.y), vec2<f32>(rect.min.x, rect.max.y), rect.max);
     let position = remap(vertexes[input.vertex_index]);
     return VertexOuptut(vec4<f32>(position, 0.0, 1.0), bar_rect.property_index);
 }
@@ -167,12 +141,7 @@ fn calc_distance(frag_coord: vec2<f32>, property: Property) -> f32 {
     let has_max_distance = bool(property.has_max_distance);
     let max_distance = property.max_distance;
 
-    let src_clip_vec = vec4<f32>(
-        max_distance - key_position.y,
-        key_position.y + property.height + max_distance,
-        max_distance - key_position.x,
-        key_position.x + property.width + max_distance
-    );
+    let src_clip_vec = vec4<f32>(max_distance - key_position.y, key_position.y + property.height + max_distance, max_distance - key_position.x, key_position.x + property.width + max_distance);
     let has_max_distance_vec = vec4<bool>(has_max_distance);
     let screen_size = uniforms.screen_size;
     let fallback_vec = vec4<f32>(0.0, screen_size.height, 0.0, screen_size.width);

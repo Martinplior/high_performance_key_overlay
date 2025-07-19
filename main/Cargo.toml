@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["common", "kps_dashboard_app", "main_app", "setting_app"]
+members = ["common", "kps_dashboard_app", "main_app", "main_app_vk", "setting_app"]
 
 [workspace.dependencies]
 common = { path = "./common" }
@@ -12,9 +12,6 @@ wgpu = { version = "25.0.2", default-features = false, features = ["vulkan", "gl
 
 serde = { version = "1.0.219", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0.140", default-features = false, features = ["std"] }
-font-kit = { version = "0.14.3", default-features = false, features = ["source"] }
-owned_ttf_parser = { version = "0.25.0", default-features = false }
-crossbeam-channel = { version = "0.5.15", default-features = false, features = ["std"] }
 parking_lot = { version = "0.12.4", default-features = false }
 bytemuck = { version = "1.23.1", default-features = false, features = ["derive"] }
 rfd = { version = "0.15.3", default-features = false }
@@ -25,8 +22,14 @@ windows = { version = "0.61.3", default-features = false, features = [
     "Win32_UI_Input_KeyboardAndMouse",
 ] }
 
+vulkano = { version = "0.35.1", default-features = false, features = ["macros"] }
+vulkano-shaders = { version = "0.35.0", default-features = false }
+winit = { version = "0.30.11", default-features = false, features = ["rwh_06"] }
+ahash = { version = "0.8.12", default-features = false, features = ["default"] }
+fontdue = { version = "0.9.3", default-features = false, features = ["default", "parallel"] }
+
 [workspace.dependencies.sak_rs]
 git = "https://github.com/Martinplior/sak_rs"
-tag = "v0.1.5"
+tag = "v0.1.14"
 default-features = false
-features = ["os_windows_input", "graceful_run"]
+features = ["os_windows_input", "graceful_run", "sync", "font", "graphics_renderer_vulkan"]

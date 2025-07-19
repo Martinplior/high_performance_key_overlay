@@ -13,15 +13,22 @@ wgpu = { workspace = true }
 
 serde = { workspace = true }
 serde_json = { workspace = true }
-font-kit = { workspace = true }
-owned_ttf_parser = { workspace = true }
-crossbeam-channel = { workspace = true }
 parking_lot = { workspace = true }
 bytemuck = { workspace = true }
 windows = { workspace = true }
 rfd = { workspace = true }
 image = { workspace = true }
 mimalloc = { workspace = true }
+
+vulkano = { workspace = true }
+vulkano-shaders = { workspace = true }
+winit = { workspace = true }
+ahash = { workspace = true }
+fontdue = { workspace = true }
+
+[features]
+
+save_memory = []
 
 [lints.clippy]
 new_without_default = "allow"

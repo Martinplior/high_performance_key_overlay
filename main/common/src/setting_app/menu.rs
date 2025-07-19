@@ -154,7 +154,7 @@ impl File {
     }
 
     fn save_file(&mut self, r: FileResponse, app_shared_data: &mut AppSharedData) {
-        let Some(path) = (match r {
+        let path = match r {
             FileResponse::SaveFileToSetting => Some(crate::get_current_dir().join("setting.json")),
             FileResponse::SaveFile => Some(app_shared_data.load_path.clone()),
             FileResponse::SaveFileAs => Self::file_dialog()
@@ -178,7 +178,8 @@ impl File {
                     path
                 }),
             _ => unreachable!(),
-        }) else {
+        };
+        let Some(path) = path else {
             return;
         };
         let _ = app_shared_data
@@ -223,7 +224,7 @@ impl File {
                 self.response = Some(FileResponse::SaveFileAs);
             });
 
-        ui.menu_button("加载预设配置", |ui| {
+        ui.menu_button("加载默认配置", |ui| {
             ui.button("ZXC").clicked().then(|| {
                 self.response = Some(FileResponse::LoadDefaultSetting(Setting::default_zxc));
             });

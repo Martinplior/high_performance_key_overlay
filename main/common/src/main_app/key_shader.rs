@@ -94,7 +94,7 @@ impl CustomCallbackInner {
         if self.bar_rects.is_empty() {
             return;
         }
-        let size = self.bar_rects.len() * std::mem::size_of::<BarRect>();
+        let size = self.bar_rects.len() * size_of::<BarRect>();
         if size > self.vertex_buffer.size() as usize {
             self.vertex_buffer_grow();
         }
@@ -129,7 +129,7 @@ impl CustomCallback {
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: NonZero::new(std::mem::size_of::<Uniforms>() as _),
+                        min_binding_size: NonZero::new(size_of::<Uniforms>() as _),
                     },
                     count: None,
                 },
@@ -139,7 +139,7 @@ impl CustomCallback {
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Storage { read_only: true },
                         has_dynamic_offset: false,
-                        min_binding_size: NonZero::new(std::mem::size_of::<Property>() as _),
+                        min_binding_size: NonZero::new(size_of::<Property>() as _),
                     },
                     count: None,
                 },
@@ -153,7 +153,7 @@ impl CustomCallback {
         let vertex_buffer = device.create_buffer(&BufferDescriptor {
             label: Some("key_shader.vertex_buffer"),
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            size: 1024 * std::mem::size_of::<BarRect>() as u64,
+            size: 1024 * size_of::<BarRect>() as u64,
             mapped_at_creation: false,
         });
         let pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
@@ -164,7 +164,7 @@ impl CustomCallback {
                 entry_point: Some("vs_main"),
                 compilation_options: Default::default(),
                 buffers: &[VertexBufferLayout {
-                    array_stride: std::mem::size_of::<BarRect>() as u64,
+                    array_stride: size_of::<BarRect>() as u64,
                     step_mode: wgpu::VertexStepMode::Instance,
                     attributes: &[
                         VertexAttribute {
@@ -214,8 +214,7 @@ impl CustomCallback {
         let properties_contents: Box<_> = key_properties
             .iter()
             .map(|key_property| Property {
-                pressed_color: Into::<Color32>::into(key_property.pressed_color)
-                    .to_normalized_gamma_f32(),
+                pressed_color: Color32::from(key_property.pressed_color).to_normalized_gamma_f32(),
                 key_position: key_property.position.into(),
                 width: key_property.width,
                 height: key_property.height,
@@ -321,7 +320,7 @@ impl eframe::egui_wgpu::CallbackTrait for CustomCallback {
     ) {
         let inner = self.inner.lock();
         let bar_rects_len = inner.bar_rects.len();
-        let slice_bytes = (bar_rects_len * std::mem::size_of::<BarRect>()) as u64;
+        let slice_bytes = (bar_rects_len * size_of::<BarRect>()) as u64;
         render_pass.set_pipeline(&inner.pipeline);
         render_pass.set_bind_group(0, &inner.bind_group, &[]);
         render_pass.set_vertex_buffer(0, inner.vertex_buffer.slice(..slice_bytes));

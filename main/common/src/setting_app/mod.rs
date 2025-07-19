@@ -1,7 +1,7 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
 use egui::ViewportBuilder;
-use sak_rs::os::windows::input::GlobalListener;
+use sak_rs::{os::windows::input::GlobalListener, sync::mpmc};
 
 use crate::{main_app::key_overlay::KeyOverlay, msg_hook, setting::Setting};
 
@@ -76,9 +76,12 @@ impl App {
     ) -> Self {
         cc.egui_ctx.set_theme(egui::ThemePreference::Dark);
         let cap = crate::CHANNEL_CAP;
-        let (keys_sender, keys_receiver) = crossbeam_channel::bounded(cap);
+        let (keys_sender, keys_receiver) = mpmc::queue::bounded(cap);
+        let egui_ctx = cc.egui_ctx.clone();
         let hook_shared = msg_hook::HookShared {
-            egui_ctx: cc.egui_ctx.clone(),
+            request_redraw: Box::new(move || {
+                (!egui_ctx.has_requested_repaint()).then(|| egui_ctx.request_repaint());
+            }),
         };
         let global_listener = GlobalListener::new(
             msg_hook::create_msg_hook(keys_sender, hook_shared),
@@ -121,7 +124,7 @@ impl App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let instant_now = std::time::Instant::now();
+        let instant_now = Instant::now();
         self.try_load_pending_setting();
 
         self.show(ctx);
@@ -168,7 +171,7 @@ impl App {
     }
 
     fn show_keyoverlay(&mut self, ctx: &egui::Context) {
-        let new_viewport_id = egui::ViewportId::from_hash_of("keyoverlay");
+        let new_viewport_id = egui::ViewportId(ctx.viewport_id().0.with("keyoverlay"));
         let window_setting = &self.shared_data.current_setting.window_setting;
         let viewport_builder = egui::ViewportBuilder::default()
             .with_minimize_button(false)

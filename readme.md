@@ -19,5 +19,5 @@ A: ~~window transparency on Windows sxxks~~
 
 # 未来计划
 
-- [x] ~~native Vulkan backend~~ no need for it & transparent background
-- [ ] implement main_app without eframe+egui for extreme performance... or do we really need extreme performance?
+- [x] ~~native Vulkan backend~~ ~~no need for it~~ now we have native vulkan backend & transparent background
+- [x] implement main_app without eframe+egui for extreme performance.
