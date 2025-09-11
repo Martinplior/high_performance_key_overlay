@@ -12,13 +12,16 @@ pub struct HookShared {
     pub request_redraw: Box<dyn FnMut() + Send>,
 }
 
-pub fn create_register_raw_input_hook() -> impl FnOnce(&HWND) {
-    |&hwnd| {
+pub fn create_register_raw_input_hook(no_mouse: bool) -> impl FnOnce(&HWND) {
+    move |&hwnd| {
         use sak_rs::os::windows::input::raw_input::device;
         device::register(
             device::DeviceType::Keyboard,
             device::OptionType::inputsink_with_no_legacy(hwnd),
         );
+        if no_mouse {
+            return;
+        }
         device::register(
             device::DeviceType::Mouse,
             device::OptionType::inputsink(hwnd),

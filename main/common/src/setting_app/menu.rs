@@ -94,7 +94,7 @@ impl Menu {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 enum FileResponse {
     LoadFile,
     SaveFileToSetting,
@@ -187,8 +187,9 @@ impl File {
             .to_file(&path)
             .map(|_| {
                 app_shared_data.loaded_setting = app_shared_data.current_setting.clone();
-                (r == FileResponse::SaveFileAs).then(|| app_shared_data.load_path = path.clone());
-                (r != FileResponse::SaveFileToSetting || path == app_shared_data.load_path)
+                matches!(r, FileResponse::SaveFileAs)
+                    .then(|| app_shared_data.load_path = path.clone());
+                (matches!(r, FileResponse::SaveFileToSetting) || path == app_shared_data.load_path)
                     .then(|| app_shared_data.modified = false);
                 message_dialog::info("保存成功！").show();
             })

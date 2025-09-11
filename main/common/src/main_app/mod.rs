@@ -74,7 +74,7 @@ impl App {
         };
         let global_listener = GlobalListener::new(
             msg_hook::create_msg_hook(keys_sender, hook_shared),
-            msg_hook::create_register_raw_input_hook(),
+            msg_hook::create_register_raw_input_hook(false),
         );
         let key_overlay = KeyOverlay::new(cc, &cc.egui_ctx, setting, keys_receiver);
         Self {

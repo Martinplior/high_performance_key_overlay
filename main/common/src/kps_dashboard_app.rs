@@ -74,7 +74,7 @@ impl App {
         };
         let global_listener = GlobalListener::new(
             msg_hook::create_msg_hook(keys_sender, hook_shared),
-            msg_hook::create_register_raw_input_hook(),
+            msg_hook::create_register_raw_input_hook(kps_setting.no_mouse),
         );
         Self::init_fonts(&cc.egui_ctx);
         Self {
@@ -143,6 +143,7 @@ pub struct KpsSetting {
     /// unit: ms
     interval_ms: f32,
     max_count: u32,
+    no_mouse: bool,
 }
 
 impl Default for KpsSetting {
@@ -150,6 +151,7 @@ impl Default for KpsSetting {
         Self {
             interval_ms: 250.0,
             max_count: 24,
+            no_mouse: true,
         }
     }
 }

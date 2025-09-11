@@ -9,7 +9,7 @@ use sak_rs::{
     graphics::renderer::vulkan::{Allocators, PREMUL_ALPHA, command_builder::CommandBuilder},
 };
 use vulkano::{
-    buffer::{BufferContents, Subbuffer},
+    buffer::Subbuffer,
     descriptor_set::{DescriptorSet, WriteDescriptorSet},
     device::{Device, Queue},
     image::view::ImageView,
@@ -19,7 +19,6 @@ use vulkano::{
         graphics::{
             GraphicsPipelineCreateInfo,
             color_blend::{ColorBlendAttachmentState, ColorBlendState},
-            vertex_input::Vertex,
             viewport::{Viewport, ViewportState},
         },
         layout::{PipelineDescriptorSetLayoutCreateInfo, PipelineLayoutCreateInfo},
@@ -30,13 +29,6 @@ use vulkano::{
 use crate::key_overlay_core::key_property::KeyProperty;
 
 use super::shaders;
-
-#[repr(C)]
-#[derive(Clone, BufferContents, Vertex)]
-struct VertexInput {
-    #[format(R32_UINT)]
-    in_property_index: u32,
-}
 
 #[derive(Clone)]
 struct Shared {

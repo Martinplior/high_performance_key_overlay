@@ -175,7 +175,7 @@ impl ApplicationHandler for App {
         };
         let _global_listener = GlobalListener::new(
             msg_hook::create_msg_hook(keys_sender, hook_shared),
-            msg_hook::create_register_raw_input_hook(),
+            msg_hook::create_register_raw_input_hook(false),
         );
         let key_overlay = KeyOverlay::new(&renderer, setting, keys_receiver);
         window.set_visible(true);

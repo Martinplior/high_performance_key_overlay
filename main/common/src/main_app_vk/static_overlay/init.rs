@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use sak_rs::{font::FontFallbackList, graphics::renderer::vulkan::Allocators};
 use vulkano::{
-    buffer::{BufferContents, Subbuffer},
+    buffer::Subbuffer,
     command_buffer::{
         AutoCommandBufferBuilder, BlitImageInfo, ClearColorImageInfo, CommandBufferUsage,
         PrimaryCommandBufferAbstract, RenderPassBeginInfo,
@@ -12,7 +12,6 @@ use vulkano::{
     format::Format,
     image::{Image, ImageCreateInfo, ImageType, ImageUsage, view::ImageView},
     memory::allocator::{AllocationCreateInfo, MemoryTypeFilter},
-    pipeline::graphics::vertex_input::Vertex,
     render_pass::{Framebuffer, FramebufferCreateInfo},
     sync::GpuFuture,
 };
@@ -52,13 +51,6 @@ pub fn static_overlay_image_view(
         properties_buffer,
     )
     .draw_static_overlay_image_view(batch_size)
-}
-
-#[repr(C)]
-#[derive(Clone, BufferContents, Vertex)]
-struct VertexInput {
-    #[format(R32_UINT)]
-    in_property_index: u32,
 }
 
 struct Init {
