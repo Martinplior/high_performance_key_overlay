@@ -2,14 +2,17 @@ use std::sync::Arc;
 
 use ahash::HashMapExt;
 use sak_rs::{
-    font::{FontFallbackList, LineLayout},
-    graphics::renderer::vulkan::{Allocators, PREMUL_ALPHA, mipmap},
+    font::{
+        FontFallbackList, LineLayout, SdfGenerator,
+        layout::{CachedLineLayout, CachedLineLayoutLibrary, LineLayoutMetrics},
+    },
+    graphics::vulkan::{context::Allocators, renderer::PREMUL_ALPHA},
 };
 use vulkano::{
     buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer},
     command_buffer::{
-        AutoCommandBufferBuilder, CommandBufferUsage, PrimaryAutoCommandBuffer,
-        PrimaryCommandBufferAbstract,
+        AutoCommandBufferBuilder, CommandBufferUsage, CopyBufferToImageInfo,
+        PrimaryAutoCommandBuffer, PrimaryCommandBufferAbstract,
     },
     descriptor_set::{
         DescriptorSet, WriteDescriptorSet,
@@ -21,7 +24,7 @@ use vulkano::{
     device::{Device, Queue},
     format::Format,
     image::{
-        ImageCreateInfo, ImageUsage,
+        Image, ImageCreateInfo, ImageUsage,
         sampler::{BorderColor, Sampler, SamplerAddressMode, SamplerCreateInfo},
         view::ImageView,
     },
@@ -61,12 +64,53 @@ struct VertexInput {
 
 #[derive(Clone)]
 struct Shared {
-    allocators: Allocators,
+    allocators: Arc<Allocators>,
     queue: Arc<Queue>,
     pipeline: Arc<GraphicsPipeline>,
 
     sampler: Arc<Sampler>,
     descriptor_set: Arc<DescriptorSet>,
+}
+
+struct CharLayoutLibrary {
+    map: ahash::HashMap<char, CachedLineLayout>,
+}
+
+impl CharLayoutLibrary {
+    fn new(library: &FontFallbackList, properties: &[KeyProperty]) -> Arc<Self> {
+        let set: ahash::HashSet<_> = properties
+            .iter()
+            .flat_map(|property| property.key_text.chars())
+            .collect();
+        let map = set
+            .into_iter()
+            .filter_map(|ch| {
+                let font = library.font(ch)?;
+                let scale_factor = font.px_scale_factor();
+                let metrics = LineLayoutMetrics {
+                    ascent: font.ascent_unscaled(),
+                    descent: font.descent_unscaled(),
+                    h_advance: font.h_advance_unscaled(ch),
+                    h_side_bearing: font.h_side_bearing_unscaled(ch),
+                };
+                let bounds = font.outline(ch).map(|o| o.bounds).unwrap_or_default();
+                let cached_layout = CachedLineLayout {
+                    scale_factor,
+                    metrics_unscaled: metrics,
+                    outline_bounds_unscaled: bounds,
+                };
+                Some((ch, cached_layout))
+            })
+            .collect();
+
+        Arc::new(Self { map })
+    }
+}
+
+impl CachedLineLayoutLibrary for CharLayoutLibrary {
+    fn get_cache(&self, ch: char) -> Option<&CachedLineLayout> {
+        self.map.get(&ch)
+    }
 }
 
 pub struct TextShader {
@@ -75,7 +119,6 @@ pub struct TextShader {
     char_layout_map: Vec<(char, Vec<VertexInput>)>,
     char_buf: Vec<char>,
     fonts: Arc<FontFallbackList>,
-    max_font_size: f32,
 
     vertex_input_buf: Vec<VertexInput>,
 }
@@ -83,14 +126,14 @@ pub struct TextShader {
 impl TextShader {
     const DEFAULT_BUF_CAP: usize = 64;
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         queue: Arc<Queue>,
         render_pass: Arc<RenderPass>,
-        allocators: Allocators,
+        allocators: Arc<Allocators>,
         screen_size: [f32; 2],
         key_properties: &[KeyProperty],
         fonts: Arc<FontFallbackList>,
-        max_font_size: f32,
         batch_size: u32,
         uniform_buffer: Subbuffer<shaders::ScreenSize>,
         properties_buffer: Subbuffer<[shaders::Property]>,
@@ -121,57 +164,59 @@ impl TextShader {
             descriptor_set,
         };
 
-        let char_layout_map = key_properties
-            .iter()
-            .enumerate()
-            .flat_map(|(index, property)| {
-                let mut layout = LineLayout::new(property.font_size);
-                layout.append(&*fonts, &property.key_text);
+        let char_layout_library = CharLayoutLibrary::new(&fonts, key_properties);
+
+        let char_layout_map = {
+            let mut map = ahash::HashMap::with_capacity(Self::DEFAULT_BUF_CAP);
+            for (index, property) in key_properties.iter().enumerate() {
+                let font_size = property.font_size;
+                let mut layout = LineLayout::new(font_size);
+                layout.append(&*char_layout_library, &property.key_text);
                 let frame_x_center = property.position.x + property.width / 2.0;
                 let frame_y_center = property.position.y + property.height / 2.0;
                 let [x_center, y_center] = layout.center();
                 let dx = frame_x_center - x_center;
                 let dy = frame_y_center - y_center;
-                layout
-                    .into_layout()
-                    .into_iter()
-                    .filter_map(move |char_layout| {
-                        let ch = char_layout.ch;
-                        let vertex = VertexInput {
-                            in_property_index: index as u32,
-                            in_char_index: 0,
-                            in_position: [
-                                (char_layout.x as f32 + dx).round(),
-                                (char_layout.y as f32 + dy).round(),
-                            ],
-                            in_size: [char_layout.width as f32, char_layout.height as f32],
-                        };
-                        let filter = char_layout.width <= 0
-                            || char_layout.height <= 0
-                            || vertex.in_position[0] > screen_size[0]
-                            || vertex.in_position[1] > screen_size[1]
-                            || vertex.in_position[0] + vertex.in_size[0] < 0.0
-                            || vertex.in_position[1] + vertex.in_size[1] < 0.0;
-                        (!filter).then(|| (ch, vertex))
-                    })
-            })
-            .fold(
-                ahash::HashMap::with_capacity(Self::DEFAULT_BUF_CAP),
-                |mut map, (ch, vertex)| {
+                for char_layout in layout.into_layout() {
+                    let ch = char_layout.ch;
+                    let Some(glyph_metrics) = char_layout_library.glyph_metrics(ch, font_size)
+                    else {
+                        continue;
+                    };
+                    let edge_padding = crate::sdf_edge_padding(font_size);
+                    let vertex = VertexInput {
+                        in_property_index: index as u32,
+                        in_char_index: 0,
+                        in_position: [
+                            char_layout.x as f32 + dx - edge_padding,
+                            glyph_metrics.y_offset as f32 + dy - edge_padding,
+                        ],
+                        in_size: [
+                            glyph_metrics.width as f32 + 2.0 * edge_padding,
+                            glyph_metrics.height as f32 + 2.0 * edge_padding,
+                        ],
+                    };
+                    let invisible = glyph_metrics.width == 0
+                        || glyph_metrics.height == 0
+                        || vertex.in_position[0] > screen_size[0]
+                        || vertex.in_position[1] > screen_size[1]
+                        || vertex.in_position[0] + vertex.in_size[0] < 0.0
+                        || vertex.in_position[1] + vertex.in_size[1] < 0.0;
+                    if invisible {
+                        continue;
+                    }
                     map.entry(ch)
                         .or_insert_with(|| Vec::with_capacity(1))
                         .push(vertex);
-                    map
-                },
-            )
-            .into_iter()
-            .collect();
+                }
+            }
+            map.into_iter().collect()
+        };
 
         Self {
             shared,
             char_layout_map,
             fonts,
-            max_font_size,
             char_buf: Vec::new(),
             vertex_input_buf: Vec::with_capacity(Self::DEFAULT_BUF_CAP),
         }
@@ -218,11 +263,14 @@ impl TextShader {
         )
         .expect("unreachable");
 
+        let mut sdf_generator =
+            SdfGenerator::new(crate::SDF_PADDING, crate::SDF_RADIUS, crate::SDF_CUTOFF);
+
         let char_descriptor_set = Self::create_char_descriptor_set(
             &self.shared,
             self.char_buf.drain(..),
             &self.fonts,
-            self.max_font_size,
+            &mut sdf_generator,
         );
 
         let shared = self.shared.clone();
@@ -276,12 +324,12 @@ impl TextShader {
             *set_1 = new_set_1;
             PipelineLayout::new(device.clone(), create_info).expect("unreachable")
         };
-        let subpass = Subpass::from(render_pass, 0).unwrap();
+        let subpass = Subpass::from(render_pass, 0).expect("unreachable");
         let viewport = Viewport {
             extent: screen_size,
             ..Default::default()
         };
-        let pipeline = GraphicsPipeline::new(
+        GraphicsPipeline::new(
             device,
             None,
             GraphicsPipelineCreateInfo {
@@ -308,8 +356,7 @@ impl TextShader {
                 ..GraphicsPipelineCreateInfo::layout(pipeline_layout)
             },
         )
-        .expect("unreachable");
-        pipeline
+        .expect("unreachable")
     }
 
     fn create_descriptor_set(
@@ -323,8 +370,8 @@ impl TextShader {
             allocators.descriptor_set().clone(),
             descriptor_set_layout.clone(),
             [
-                WriteDescriptorSet::buffer(0, uniform_buffer.into()),
-                WriteDescriptorSet::buffer(1, properties_buffer.into()),
+                WriteDescriptorSet::buffer(0, uniform_buffer),
+                WriteDescriptorSet::buffer(1, properties_buffer),
             ],
             [],
         )
@@ -335,7 +382,7 @@ impl TextShader {
         shared: &Shared,
         chars: impl IntoIterator<Item = char>,
         fonts: &FontFallbackList,
-        font_size: f32,
+        sdf_generator: &mut SdfGenerator,
     ) -> Arc<DescriptorSet> {
         let allocators = &shared.allocators;
         let queue = &shared.queue;
@@ -351,7 +398,11 @@ impl TextShader {
         let image_view_vec: Vec<_> = chars
             .into_iter()
             .map(|ch| {
-                let (metrics, bitmap) = fonts.rasterize(ch, font_size).expect("unreachable");
+                let glyph = fonts
+                    .font(ch)
+                    .and_then(|font| font.rasterize(ch, crate::SDF_SIZE as f32))
+                    .expect("unreachable");
+                let sdf = sdf_generator.generate(&glyph.bitmap, glyph.metrics.width);
                 let buffer = Buffer::from_iter(
                     allocators.memory().clone(),
                     BufferCreateInfo {
@@ -363,14 +414,14 @@ impl TextShader {
                             | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
                         ..Default::default()
                     },
-                    bitmap,
+                    sdf.bitmap,
                 )
                 .expect("Failed to create buffer");
 
-                let image = mipmap::create_image2d_with_mipmaps(
+                let image = Image::new(
                     allocators.memory().clone(),
                     ImageCreateInfo {
-                        extent: [metrics.width as u32, metrics.height as u32, 1],
+                        extent: [sdf.width, sdf.height, 1],
                         format: Format::R8_UNORM,
                         usage: ImageUsage::SAMPLED
                             | ImageUsage::TRANSFER_DST
@@ -381,10 +432,14 @@ impl TextShader {
                         memory_type_filter: MemoryTypeFilter::PREFER_DEVICE,
                         ..Default::default()
                     },
-                    None,
-                    buffer,
-                    &mut command_builder,
-                );
+                )
+                .expect("Failed to create sdf texture");
+                command_builder
+                    .copy_buffer_to_image(CopyBufferToImageInfo::buffer_image(
+                        buffer,
+                        image.clone(),
+                    ))
+                    .expect("unreachable");
                 ImageView::new_default(image).expect("Failed to create image view")
             })
             .collect();

@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use sak_rs::graphics::renderer::vulkan::{
-    Allocators, PREMUL_ALPHA, Renderer, command_builder::CommandBuilder,
+use sak_rs::graphics::vulkan::{
+    context::Allocators,
+    renderer::{PREMUL_ALPHA, Renderer, command_builder::CommandBuilder},
 };
 use vulkano::{
     buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer},
@@ -143,12 +144,12 @@ impl PressRectShader {
             },
         )
         .expect("unreachable");
-        let subpass = Subpass::from(render_pass, 0).unwrap();
+        let subpass = Subpass::from(render_pass, 0).expect("unreachable");
         let viewport = Viewport {
             extent: screen_size,
             ..Default::default()
         };
-        let pipeline = GraphicsPipeline::new(
+        GraphicsPipeline::new(
             device,
             None,
             GraphicsPipelineCreateInfo {
@@ -175,8 +176,7 @@ impl PressRectShader {
                 ..GraphicsPipelineCreateInfo::layout(pipeline_layout)
             },
         )
-        .expect("unreachable");
-        pipeline
+        .expect("unreachable")
     }
 
     fn create_descriptor_set(
@@ -190,8 +190,8 @@ impl PressRectShader {
             allocators.descriptor_set().clone(),
             descriptor_set_layout.clone(),
             [
-                WriteDescriptorSet::buffer(0, uniform_buffer.into()),
-                WriteDescriptorSet::buffer(1, properties_buffer.into()),
+                WriteDescriptorSet::buffer(0, uniform_buffer),
+                WriteDescriptorSet::buffer(1, properties_buffer),
             ],
             [],
         )

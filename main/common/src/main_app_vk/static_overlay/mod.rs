@@ -6,7 +6,10 @@ use std::sync::Arc;
 
 use sak_rs::{
     font::FontFallbackList,
-    graphics::renderer::vulkan::{Allocators, PREMUL_ALPHA, command_builder::CommandBuilder},
+    graphics::vulkan::{
+        context::Allocators,
+        renderer::{PREMUL_ALPHA, command_builder::CommandBuilder},
+    },
 };
 use vulkano::{
     buffer::Subbuffer,
@@ -42,14 +45,14 @@ pub struct StaticOverlayShader {
 }
 
 impl StaticOverlayShader {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         queue: Arc<Queue>,
         render_pass: Arc<RenderPass>,
-        allocators: &Allocators,
+        allocators: &Arc<Allocators>,
         screen_size: [f32; 2],
         key_properties: &[KeyProperty],
         fonts: Arc<FontFallbackList>,
-        max_font_size: f32,
         uniform_buffer: Subbuffer<shaders::ScreenSize>,
         properties_buffer: Subbuffer<[shaders::Property]>,
     ) -> Self {
@@ -62,12 +65,10 @@ impl StaticOverlayShader {
             screen_size,
             key_properties,
             fonts,
-            max_font_size,
             uniform_buffer,
             properties_buffer,
         );
-        let descriptor_set =
-            Self::create_descriptor_set(&allocators, image_view, pipeline.layout());
+        let descriptor_set = Self::create_descriptor_set(allocators, image_view, pipeline.layout());
 
         let shared = Shared {
             pipeline,
@@ -123,12 +124,12 @@ impl StaticOverlayShader {
             },
         )
         .expect("unreachable");
-        let subpass = Subpass::from(render_pass, 0).unwrap();
+        let subpass = Subpass::from(render_pass, 0).expect("unreachable");
         let viewport = Viewport {
             extent: screen_size,
             ..Default::default()
         };
-        let pipeline = GraphicsPipeline::new(
+        GraphicsPipeline::new(
             device,
             None,
             GraphicsPipelineCreateInfo {
@@ -152,8 +153,7 @@ impl StaticOverlayShader {
                 ..GraphicsPipelineCreateInfo::layout(pipeline_layout)
             },
         )
-        .expect("unreachable");
-        pipeline
+        .expect("unreachable")
     }
 
     fn create_descriptor_set(

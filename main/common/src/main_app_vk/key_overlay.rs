@@ -12,10 +12,12 @@ use crate::{
 };
 
 use egui::Color32;
-use fontdue::FontSettings;
 use sak_rs::{
-    font::{FontFallbackList, SystemFontsLoader},
-    graphics::renderer::vulkan::{Allocators, Renderer, command_builder::CommandBuilder},
+    font::{Font, FontFallbackList, SystemFontsLoader},
+    graphics::vulkan::{
+        context::Allocators,
+        renderer::{Renderer, command_builder::CommandBuilder},
+    },
     message_dialog,
     sync::mpmc::queue::BoundedReceiver as MpscReceiver,
 };
@@ -81,34 +83,19 @@ impl Shaders {
             ..
         } = setting;
 
-        let max_font_size = key_properties
-            .iter()
-            .map(|p| p.font_size)
-            .max_by(|a, b| a.partial_cmp(b).expect("unreachable"))
-            .unwrap_or(0.0);
-        let scale = max_font_size.min(1024.0);
         let fonts_loader = SystemFontsLoader::new();
-        let font_data: Vec<_> = [&**font_name]
+        let font_data = [&**font_name]
             .into_iter()
             .chain(crate::DEFAULT_FONT_NAMES)
             .filter_map(|name| {
                 fonts_loader
                     .load_by_family_name(name)
-                    .map(|data| {
-                        fontdue::Font::from_bytes(
-                            data,
-                            FontSettings {
-                                scale,
-                                ..Default::default()
-                            },
-                        )
-                        .expect("unreachable")
-                    })
+                    .map(|data| Font::try_from_vec(data).expect("unreachable"))
                     .map_err(|e| message_dialog::warning(format!("Failed to load font: {e:?}")))
                     .ok()
             })
             .collect();
-        let fonts = Arc::new(FontFallbackList::new(font_data).expect("unreachable"));
+        let fonts = Arc::new(FontFallbackList::new(font_data));
 
         let screen_size = [window_setting.width, window_setting.height];
         let uniform_buffer = Self::create_uniform_buffer(renderer.allocators(), screen_size);
@@ -130,9 +117,8 @@ impl Shaders {
                         render_pass,
                         allocators,
                         screen_size,
-                        &key_properties,
+                        key_properties,
                         fonts,
-                        max_font_size,
                         uniform_buffer,
                         properties_buffer,
                     )
@@ -155,9 +141,7 @@ impl Shaders {
                 render_pass,
                 allocators.clone(),
                 screen_size,
-                key_properties,
                 fonts,
-                max_font_size,
                 uniform_buffer,
                 properties_buffer,
             );

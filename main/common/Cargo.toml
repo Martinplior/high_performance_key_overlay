@@ -24,13 +24,10 @@ vulkano = { workspace = true }
 vulkano-shaders = { workspace = true }
 winit = { workspace = true }
 ahash = { workspace = true }
-fontdue = { workspace = true }
-
-[features]
-
-save_memory = []
+ab_glyph = { workspace = true }
 
 [lints.clippy]
+get_first = "allow"
 new_without_default = "allow"
 option_map_unit_fn = "allow"
 unwrap_used = "warn"

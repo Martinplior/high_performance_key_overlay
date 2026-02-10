@@ -33,9 +33,15 @@ pub fn create_msg_hook(
     msg_sender: MpscSender<KeyMessage>,
     mut hook_shared: HookShared,
 ) -> impl FnMut(&WinMsg) -> bool {
+    let mut reader = raw_input::RawInputBufReader::new();
     move |msg| {
         if msg.msg.message == WM_INPUT {
-            handle_raw_input(msg, &msg_sender, &mut hook_shared.request_redraw);
+            handle_raw_input(
+                msg,
+                &msg_sender,
+                &mut reader,
+                &mut hook_shared.request_redraw,
+            );
             return true;
         }
         false
@@ -46,11 +52,12 @@ pub fn create_msg_hook(
 fn handle_raw_input(
     msg: &WinMsg,
     msg_sender: &MpscSender<KeyMessage>,
+    reader: &mut raw_input::RawInputBufReader,
     request_redraw: &mut dyn FnMut(),
 ) {
-    let raw_input = raw_input::RawInput::from_msg(&msg.msg);
+    let raw_input = reader.read_from_msg(&msg.msg).expect("unreachable");
     match raw_input {
-        raw_input::RawInput::Keyboard(keyboard) => {
+        raw_input::RawData::Keyboard(keyboard) => {
             let virtual_key = keyboard.virtual_key();
             let is_extend = if virtual_key == VK_SHIFT {
                 keyboard.make_code() == 0x0036
@@ -80,7 +87,7 @@ fn handle_raw_input(
             request_redraw();
             oldest.map(|o| eprintln!("queue is full! oldest: {o:?}"));
         }
-        raw_input::RawInput::Mouse(mouse) => {
+        raw_input::RawData::Mouse(mouse) => {
             [
                 (mouse.is_left_button_down(), Key::MouseLeft, true),
                 (mouse.is_right_button_down(), Key::MouseRight, true),

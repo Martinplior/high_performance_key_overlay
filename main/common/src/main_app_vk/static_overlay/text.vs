@@ -32,4 +32,3 @@ void main() {
     out_color = property.text_color;
     out_uvz = vec3(uv[vertex_index], z_index);
 }
-

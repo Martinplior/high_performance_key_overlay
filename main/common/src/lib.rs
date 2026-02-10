@@ -18,7 +18,6 @@ use eframe::wgpu::{MemoryHints, Trace, wgt::DeviceDescriptor};
 use sak_rs::message_dialog;
 
 /// oh, blazing fast!
-#[cfg(not(feature = "save_memory"))]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
@@ -32,6 +31,16 @@ const DEFAULT_FONT_NAMES: [&str; 3] = [
     "Segoe UI emoji",
     "Segoe UI Symbol",
 ];
+
+const SDF_SIZE: u32 = 64;
+const SDF_RADIUS: f32 = SDF_SIZE as f32 / 4.0;
+const SDF_PADDING: u32 = SDF_RADIUS.ceil() as u32;
+const SDF_CUTOFF: f32 = 0.25;
+
+#[inline]
+fn sdf_edge_padding(px: f32) -> f32 {
+    px / SDF_SIZE as f32 * SDF_PADDING as f32
+}
 
 fn common_eframe_native_options(vsync: bool) -> eframe::NativeOptions {
     use eframe::egui_wgpu::{WgpuConfiguration, WgpuSetup, WgpuSetupCreateNew};
@@ -50,12 +59,9 @@ fn common_eframe_native_options(vsync: bool) -> eframe::NativeOptions {
                         label: None,
                         required_features: Features::empty(),
                         required_limits: adapter.limits(),
-                        memory_hints: if cfg!(feature = "save_memory") {
-                            MemoryHints::MemoryUsage
-                        } else {
-                            MemoryHints::Performance
-                        },
+                        memory_hints: MemoryHints::MemoryUsage,
                         trace: Trace::Off,
+                        experimental_features: ExperimentalFeatures::disabled(),
                     };
                     #[cfg(debug_assertions)]
                     println!("{r:?}");
@@ -86,7 +92,7 @@ fn key_overlay_setting_path() -> std::path::PathBuf {
 }
 
 pub use sak_rs::graceful_run;
-use wgpu::Features;
+use wgpu::{ExperimentalFeatures, Features};
 
 use crate::setting::Setting;
 

@@ -17,7 +17,10 @@ use std::{
 use eframe::WindowAttributes;
 use egui::Color32;
 use sak_rs::{
-    graphics::renderer::vulkan::{Renderer, RendererCreateInfo},
+    graphics::vulkan::{
+        Context, ContextConfig,
+        renderer::{Renderer, RendererCreateInfo},
+    },
     os::windows::input::GlobalListener,
     sync::mpmc,
 };
@@ -145,12 +148,10 @@ impl ApplicationHandler for App {
         } = self.create_info.take().expect("unreachable");
         let window = Self::create_window(window_attributes, event_loop);
         let window_1 = window.clone();
-        let mut renderer = Renderer::new(RendererCreateInfo {
-            window: window.clone(),
-            window_inner_size: move || window_1.inner_size().into(),
-            desire_image_format: Some(Format::B8G8R8A8_UNORM),
-            desire_image_count: NonZero::new(2),
+        let context = Context::new(ContextConfig {
+            display_handle: window.clone(),
             device_extensions: DeviceExtensions {
+                khr_swapchain: true,
                 ..Default::default()
             },
             device_features: DeviceFeatures {
@@ -158,6 +159,13 @@ impl ApplicationHandler for App {
                 descriptor_binding_partially_bound: true,
                 ..Default::default()
             },
+        });
+        let mut renderer = Renderer::new(RendererCreateInfo {
+            context: &context,
+            window: window.clone(),
+            window_inner_size: move || window_1.inner_size().into(),
+            desire_image_format: Some(Format::B8G8R8A8_UNORM),
+            desire_image_count: NonZero::new(2),
         });
         renderer.set_vsync(vsync);
         renderer.clear_color = Color32::from(setting.background_color).to_normalized_gamma_f32();

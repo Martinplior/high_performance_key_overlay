@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use sak_rs::{font::FontFallbackList, graphics::renderer::vulkan::Allocators};
+use sak_rs::{font::FontFallbackList, graphics::vulkan::context::Allocators};
 use vulkano::{
     buffer::Subbuffer,
     command_buffer::{
@@ -25,11 +25,10 @@ use super::shaders;
 
 pub fn static_overlay_image_view(
     queue: Arc<Queue>,
-    allocators: &Allocators,
+    allocators: &Arc<Allocators>,
     screen_size: [f32; 2],
     key_properties: &[KeyProperty],
     fonts: Arc<FontFallbackList>,
-    max_font_size: f32,
     uniform_buffer: Subbuffer<shaders::ScreenSize>,
     properties_buffer: Subbuffer<[shaders::Property]>,
 ) -> Arc<ImageView> {
@@ -45,7 +44,6 @@ pub fn static_overlay_image_view(
         screen_size,
         key_properties,
         fonts,
-        max_font_size,
         batch_size as u32,
         uniform_buffer,
         properties_buffer,
@@ -64,13 +62,13 @@ struct Init {
 }
 
 impl Init {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         queue: Arc<Queue>,
-        allocators: &Allocators,
+        allocators: &Arc<Allocators>,
         screen_size: [f32; 2],
         key_properties: &[KeyProperty],
         fonts: Arc<FontFallbackList>,
-        max_font_size: f32,
         batch_size: u32,
         uniform_buffer: Subbuffer<shaders::ScreenSize>,
         properties_buffer: Subbuffer<[shaders::Property]>,
@@ -97,7 +95,6 @@ impl Init {
             screen_size,
             key_properties,
             fonts,
-            max_font_size,
             batch_size,
             uniform_buffer,
             properties_buffer,
