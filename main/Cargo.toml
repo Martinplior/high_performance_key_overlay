@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["common", "kps_dashboard_app", "main_app", "main_app_vk", "setting_app"]
+members = ["common", "app_kps_dashboard", "app_main", "app_main_vk", "app_setting"]
 
 [workspace.dependencies]
 common = { path = "./common" }

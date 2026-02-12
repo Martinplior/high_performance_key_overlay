@@ -1,9 +1,9 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
-pub mod kps_dashboard_app;
-pub mod main_app;
-pub mod main_app_vk;
-pub mod setting_app;
+pub mod app_kps_dashboard;
+pub mod app_main;
+pub mod app_main_vk;
+pub mod app_setting;
 
 mod key;
 mod key_overlay_core;
@@ -12,14 +12,17 @@ mod setting;
 mod ucolor32;
 mod utils;
 
+pub use sak_rs::graceful_run;
+
 use std::sync::Arc;
 
 use eframe::wgpu::{MemoryHints, Trace, wgt::DeviceDescriptor};
 use sak_rs::message_dialog;
+use setting::Setting;
 
 /// oh, blazing fast!
 #[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+static _GLOBAL_ALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 /// large enough to avoid jam
 const CHANNEL_CAP: usize = u16::MAX as usize + 1;
@@ -44,7 +47,9 @@ fn sdf_edge_padding(px: f32) -> f32 {
 
 fn common_eframe_native_options(vsync: bool) -> eframe::NativeOptions {
     use eframe::egui_wgpu::{WgpuConfiguration, WgpuSetup, WgpuSetupCreateNew};
-    use eframe::wgpu::{Backends, InstanceDescriptor, PowerPreference, PresentMode};
+    use eframe::wgpu::{
+        Backends, ExperimentalFeatures, Features, InstanceDescriptor, PowerPreference, PresentMode,
+    };
     eframe::NativeOptions {
         renderer: eframe::Renderer::Wgpu,
         wgpu_options: WgpuConfiguration {
@@ -90,11 +95,6 @@ fn get_current_dir() -> std::path::PathBuf {
 fn key_overlay_setting_path() -> std::path::PathBuf {
     get_current_dir().join(SETTING_FILE_NAME)
 }
-
-pub use sak_rs::graceful_run;
-use wgpu::{ExperimentalFeatures, Features};
-
-use crate::setting::Setting;
 
 #[cfg(test)]
 mod tests {

@@ -55,14 +55,17 @@ impl KeyDrawCache {
         }
     }
 
+    #[inline]
     pub fn increase_count(&mut self) {
         self.count = self.count.wrapping_add(1);
     }
 
+    #[inline]
     pub fn need_repaint(&self) -> bool {
         !self.bar_queue.is_empty() || self.begin_hold_instant.is_some()
     }
 
+    #[inline]
     pub fn add_bar(&mut self, bar: KeyBar) {
         self.bar_queue.push_back(bar);
     }

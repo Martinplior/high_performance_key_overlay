@@ -39,18 +39,22 @@ impl KeyOverlayCore {
         self.key_handler.remove_outer_bar(instant_now);
     }
 
+    #[inline]
     pub fn reload(&mut self, setting: &Setting) {
         self.key_handler.reload(setting);
     }
 
+    #[inline]
     pub fn keys_receiver(&self) -> &MpscReceiver<KeyMessage> {
         &self.keys_receiver
     }
 
+    #[inline]
     pub fn key_handler(&self) -> &KeyHandler {
         &self.key_handler
     }
 
+    #[inline]
     pub fn need_repaint(&self) -> bool {
         self.key_handler.need_repaint()
     }
