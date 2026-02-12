@@ -8,7 +8,8 @@ layout(location = 2) in vec2 in_position;
 layout(location = 3) in vec2 in_size;
 
 layout(location = 0) out vec4 out_color;
-layout(location = 1) out vec3 out_uvz;
+layout(location = 1) out vec2 out_size;
+layout(location = 2) out vec3 out_uvz;
 
 void main() {
     const Property property = properties[in_property_index];
@@ -30,6 +31,7 @@ void main() {
 
     gl_Position = vec4(remap(in_position + pos[vertex_index]), 0.0, 1.0);
     out_color = property.counter_text_color;
+    out_size = in_size;
     out_uvz = vec3(uv[vertex_index], z_index);
 }
 

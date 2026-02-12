@@ -37,12 +37,13 @@ const DEFAULT_FONT_NAMES: [&str; 3] = [
 
 const SDF_SIZE: u32 = 64;
 const SDF_RADIUS: f32 = SDF_SIZE as f32 / 4.0;
-const SDF_PADDING: u32 = SDF_RADIUS.ceil() as u32;
-const SDF_CUTOFF: f32 = 0.25;
+const SDF_CUTOFF: f32 = 0.1;
+const SDF_PADDING: u32 = (SDF_RADIUS * (1.0 - SDF_CUTOFF)).ceil() as u32;
 
 #[inline]
-fn sdf_edge_padding(px: f32) -> f32 {
-    px / SDF_SIZE as f32 * SDF_PADDING as f32
+fn sdf_edge_padding(pt: f32) -> f32 {
+    const PADDING_PER_PT: f32 = SDF_PADDING as f32 / SDF_SIZE as f32;
+    pt * PADDING_PER_PT
 }
 
 fn common_eframe_native_options(vsync: bool) -> eframe::NativeOptions {
