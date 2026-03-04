@@ -229,6 +229,9 @@ impl NumbersShader {
                 self.vertex_input_buf.push(vertex);
             }
         }
+        if self.vertex_input_buf.is_empty() {
+            return None;
+        }
         let vertex_buffer = Buffer::from_iter(
             self.shared.allocators.memory().clone(),
             BufferCreateInfo {
