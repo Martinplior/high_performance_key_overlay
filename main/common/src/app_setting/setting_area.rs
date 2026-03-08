@@ -1157,7 +1157,7 @@ impl KeyPropertySettingRow {
                         .on_hover_text("用它可以快速地定位");
                     let slider = egui::Slider::new(
                         &mut self.global_operation_cache.scroll_index,
-                        0..=self.key_properties.len().checked_sub(1).unwrap_or(0),
+                        0..=self.key_properties.len().saturating_sub(1),
                     )
                     .drag_value_speed(1.0);
                     ui.add_enabled(!self.key_properties.is_empty(), slider)
@@ -1230,7 +1230,7 @@ impl KeyPropertySettingRow {
                             egui::Label::new("它的序号:").selectable(false).ui(ui);
                             egui::Slider::new(
                                 &mut self.global_operation_cache.its_index,
-                                0..=self.key_properties.len().checked_sub(1).unwrap_or(0),
+                                0..=self.key_properties.len().saturating_sub(1),
                             )
                             .drag_value_speed(1.0)
                             .ui(ui);

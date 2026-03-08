@@ -232,11 +232,7 @@ impl TextShader {
         if self.char_layout_map.is_empty() {
             return None;
         }
-        let start = self
-            .char_layout_map
-            .len()
-            .checked_sub(batch_size)
-            .unwrap_or_default();
+        let start = self.char_layout_map.len().saturating_sub(batch_size);
 
         self.char_buf.reserve(batch_size);
         let vertex_iter =
