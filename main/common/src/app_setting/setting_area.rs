@@ -485,12 +485,10 @@ impl KeyPropertySettingRow {
             let index_r = index_iter.next().expect("unreachable");
 
             // Safety: &mut self; not overlapped
-            let key_property_l = unsafe {
-                NonNull::from(self.key_properties.get_mut(index_l).expect("unreachable")).as_mut()
-            };
-            let key_property_r = unsafe {
-                NonNull::from(self.key_properties.get_mut(index_r).expect("unreachable")).as_mut()
-            };
+            let [key_property_l, key_property_r] = self
+                .key_properties
+                .get_disjoint_mut([index_l, index_r])
+                .expect("unreachable");
 
             macro_rules! swap {
                 ($($($token: tt).*),*) => {{
