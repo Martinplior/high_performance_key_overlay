@@ -111,7 +111,7 @@ impl eframe::App for App {
         [0.0; 4]
     }
 
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let instant_now = std::time::Instant::now();
         self.keys_message_buf.extend(self.keys_receiver.try_iter());
         self.keys_message_buf
@@ -127,14 +127,12 @@ impl eframe::App for App {
             })
             .for_each(|key_message| self.kps.update(&key_message));
         self.kps.remove_outer_key(instant_now);
-        let stable_dt = ctx.input(|i| i.stable_dt.min(i.predicted_dt));
+        let stable_dt = ui.ctx().input(|i| i.stable_dt.min(i.predicted_dt));
         self.kps.update_pointer_value(stable_dt);
-
         egui::CentralPanel::default()
             .frame(egui::Frame::NONE)
-            .show(ctx, |ui| self.kps.show(ui));
-
-        self.kps.need_repaint().then(|| ctx.request_repaint());
+            .show_inside(ui, |ui| self.kps.show(ui));
+        self.kps.need_repaint().then(|| ui.ctx().request_repaint());
     }
 }
 

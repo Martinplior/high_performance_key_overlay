@@ -5,18 +5,18 @@ members = ["common", "app_kps_dashboard", "app_main", "app_main_vk", "app_settin
 [workspace.dependencies]
 common = { path = "./common" }
 
-eframe = { version = "0.33.3", default-features = false, features = ["wgpu"] }
-egui = { version = "0.33.3", default-features = false, features = ["serde"] }
-epaint = { version = "0.33.3", default-features = false }
-wgpu = { version = "27.0.1", default-features = false, features = ["vulkan", "gles"] }
+eframe = { version = "0.34.3", default-features = false, features = ["wgpu"] }
+egui = { version = "0.34.3", default-features = false, features = ["serde"] }
+epaint = { version = "0.34.3", default-features = false }
+wgpu = { version = "29.0.3", default-features = false, features = ["vulkan", "gles"] }
 
 serde = { version = "1.0.228", default-features = false, features = ["derive"] }
-serde_json = { version = "1.0.149", default-features = false, features = ["std"] }
+serde_json = { version = "1.0.150", default-features = false, features = ["std"] }
 parking_lot = { version = "0.12.5", default-features = false }
 bytemuck = { version = "1.25.0", default-features = false, features = ["derive"] }
 rfd = { version = "0.17.2", default-features = false }
-image = { version = "0.25.9", default-features = false }
-mimalloc = { version = "0.1.48", default-features = false }
+image = { version = "0.25.10", default-features = false }
+mimalloc = { version = "0.1.52", default-features = false }
 
 windows = { version = "0.62.2", default-features = false, features = [
     "Win32_UI_Input_KeyboardAndMouse",
@@ -24,13 +24,13 @@ windows = { version = "0.62.2", default-features = false, features = [
 
 vulkano = { version = "0.35.2", default-features = false, features = ["macros"] }
 vulkano-shaders = { version = "0.35.0", default-features = false }
-winit = { version = "0.30.12", default-features = false, features = ["rwh_06"] }
+winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
 ahash = { version = "0.8.12", default-features = false, features = ["default"] }
 ab_glyph = { version = "0.2.32", default-features = false, features = ["std"] }
 
 [workspace.dependencies.sak_rs]
 git = "https://github.com/Martinplior/sak_rs"
-tag = "v0.4.3"
+tag = "v0.4.8"
 default-features = false
 features = ["os_windows_input", "graceful_run", "sync", "font", "graphics_vulkan"]
 

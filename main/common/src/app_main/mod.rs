@@ -89,14 +89,16 @@ impl eframe::App for App {
         [0.0; 4]
     }
 
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let instant_now = Instant::now();
         self.key_overlay.update(instant_now);
+
         egui::CentralPanel::default()
             .frame(egui::Frame::NONE)
-            .show(ctx, |ui| self.key_overlay.show(ui));
+            .show_inside(ui, |ui| self.key_overlay.show(ui));
+
         self.key_overlay
             .need_repaint()
-            .then(|| ctx.request_repaint());
+            .then(|| ui.ctx().request_repaint());
     }
 }

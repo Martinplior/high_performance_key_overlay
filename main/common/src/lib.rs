@@ -57,9 +57,14 @@ fn common_eframe_native_options(vsync: bool) -> eframe::NativeOptions {
             wgpu_setup: WgpuSetup::CreateNew(WgpuSetupCreateNew {
                 instance_descriptor: InstanceDescriptor {
                     backends: Backends::VULKAN | Backends::GL,
-                    ..Default::default()
+                    flags: Default::default(),
+                    memory_budget_thresholds: Default::default(),
+                    backend_options: Default::default(),
+                    display: None,
                 },
+                display_handle: None,
                 power_preference: PowerPreference::HighPerformance,
+                native_adapter_selector: None,
                 device_descriptor: Arc::new(|adapter| {
                     let r = DeviceDescriptor {
                         label: None,
@@ -73,7 +78,6 @@ fn common_eframe_native_options(vsync: bool) -> eframe::NativeOptions {
                     println!("{r:?}");
                     r
                 }),
-                ..Default::default()
             }),
             present_mode: if vsync {
                 PresentMode::AutoVsync
