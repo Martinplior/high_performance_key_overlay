@@ -130,11 +130,13 @@ impl eframe::App for App {
         let stable_dt = ctx.input(|i| i.stable_dt.min(i.predicted_dt));
         self.kps.update_pointer_value(stable_dt);
 
+        self.kps.need_repaint().then(|| ctx.request_repaint());
+    }
+
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default()
             .frame(egui::Frame::NONE)
-            .show(ctx, |ui| self.kps.show(ui));
-
-        self.kps.need_repaint().then(|| ctx.request_repaint());
+            .show_inside(ui, |ui| self.kps.show(ui));
     }
 }
 

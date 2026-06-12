@@ -34,7 +34,8 @@ impl SettingApp {
                 .with_min_inner_size([min_edge, min_edge])
                 .with_inner_size([edge, edge])
                 .with_max_inner_size([8000.0; 2])
-                .with_icon(icon_data.clone()),
+                .with_icon(icon_data.clone())
+                .with_transparent(true),
             ..crate::common_eframe_native_options(enable_vsync)
         };
 
@@ -127,9 +128,6 @@ impl eframe::App for App {
         let instant_now = Instant::now();
         self.try_load_pending_setting();
 
-        self.show(ctx);
-        self.show_keyoverlay(ctx);
-
         self.menu.update(ctx, &mut self.shared_data);
         self.setting_area.update(&mut self.shared_data);
         self.shared_data.key_overlay.update(instant_now);
@@ -138,6 +136,11 @@ impl eframe::App for App {
             .key_overlay
             .need_repaint()
             .then(|| ctx.request_repaint());
+    }
+
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        self.show(ui);
+        self.show_keyoverlay(ui);
     }
 }
 
@@ -159,19 +162,19 @@ impl App {
             });
     }
 
-    fn show(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::top("menu")
+    fn show(&mut self, ui: &mut egui::Ui) {
+        egui::Panel::top("menu")
             .resizable(false)
-            .show(ctx, |ui| self.menu.show(ui, &self.shared_data));
-        egui::CentralPanel::default().show(ctx, |ui| {
+            .show_inside(ui, |ui| self.menu.show(ui, &self.shared_data));
+        egui::CentralPanel::default().show_inside(ui, |ui| {
             egui::ScrollArea::vertical()
                 .auto_shrink(false)
                 .show(ui, |ui| self.setting_area.show(ui));
         });
     }
 
-    fn show_keyoverlay(&mut self, ctx: &egui::Context) {
-        let new_viewport_id = egui::ViewportId(ctx.viewport_id().0.with("keyoverlay"));
+    fn show_keyoverlay(&mut self, ui: &mut egui::Ui) {
+        let new_viewport_id = egui::ViewportId(ui.ctx().viewport_id().0.with("keyoverlay"));
         let window_setting = &self.shared_data.current_setting.window_setting;
         let viewport_builder = egui::ViewportBuilder::default()
             .with_minimize_button(false)
@@ -182,10 +185,11 @@ impl App {
             .with_resizable(false)
             .with_transparent(true)
             .with_inner_size(egui::vec2(window_setting.width, window_setting.height));
-        ctx.show_viewport_immediate(new_viewport_id, viewport_builder, |ctx, _vc| {
-            egui::CentralPanel::default()
-                .frame(egui::Frame::NONE)
-                .show(ctx, |ui| self.shared_data.key_overlay.show(ui));
-        });
+        ui.ctx()
+            .show_viewport_immediate(new_viewport_id, viewport_builder, |ctx, _vc| {
+                egui::CentralPanel::default()
+                    .frame(egui::Frame::NONE)
+                    .show_inside(ctx, |ui| self.shared_data.key_overlay.show(ui));
+            });
     }
 }
